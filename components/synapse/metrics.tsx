@@ -7,9 +7,9 @@ const VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_095810_ecea3dd2-fc5e-4e41-8696-4219290b6589.mp4'
 
 const METRICS = [
-  { value: '2.4ms', label: 'Synaptic Latency' },
-  { value: '99.7%', label: 'Signal Accuracy' },
-  { value: '140B', label: 'Neural Parameters' },
+  { value: '2.4ms', label: '撮合速度' },
+  { value: '99.7%', label: '交易信号' },
+  { value: '140B', label: '资产体量' },
 ]
 
 export function Metrics() {
@@ -27,7 +27,7 @@ export function Metrics() {
           transition={{ duration: 1.2 }}
           className="mb-20 text-center text-[13px] uppercase tracking-[0.2em] text-white/40 sm:text-[14px]"
         >
-          Performance Metrics
+          美股代币化新一代交易所
         </motion.h2>
         <dl className="grid grid-cols-1 gap-16 md:grid-cols-3 md:gap-8">
           {METRICS.map((m, i) => (

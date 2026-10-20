@@ -9,7 +9,7 @@ const HERO_VIDEO =
 
 const SENSITIVITY = 0.8
 const headingClass =
-  'text-white font-light leading-[0.95] tracking-[-0.03em] text-[clamp(40px,10vw,100px)]'
+  'text-white font-light leading-[1.1] tracking-[-0.02em] text-[clamp(32px,6vw,64px)]'
 
 function useMouseScrub() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -128,12 +128,6 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
               而言，我们的目标是定义为下一代交易所UEX，迈向全景加密交易的新里程碑。
             </motion.p>
           </div>
-
-          <h2 className={`${headingClass} text-left md:text-right`}>
-            <ScrambleIn text="加密" delay={700} triggered={entranceComplete} />
-            <br />
-            <ScrambleIn text="革命" delay={1000} triggered={entranceComplete} />
-          </h2>
         </div>
       </motion.div>
     </section>
