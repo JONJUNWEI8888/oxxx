@@ -50,8 +50,8 @@ export function Architecture() {
             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
           >
             <Image
-              src="/images/bull-pedestal.png"
-              alt="金色玻璃质感公牛伫立在刻有K线与比特币图案的金属方块上"
+src="/images/chrome-bull.png"
+  alt="镜面铬金属机甲公牛，粉色霓虹眼睛与轮廓光，脚下环绕发光圆环与K线"
               width={1408}
               height={768}
               className="h-auto w-full"
