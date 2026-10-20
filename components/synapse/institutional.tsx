@@ -1,134 +1,184 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Bitcoin, DollarSign, Gem, Landmark, type LucideIcon } from 'lucide-react'
+import Image from 'next/image'
+import { MotionConfig, motion, useReducedMotion, useTime, useTransform } from 'framer-motion'
+import { Landmark } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 import { SynapseXLogo } from './logo'
 
-function Coin({ icon: Icon, size = 'size-12', label }: { icon?: LucideIcon; size?: string; label?: string }) {
-  return (
+const BRANDS = {
+  nvda: { src: '/logos/nvidia.svg', label: 'NVIDIA 代币' },
+  usdt: { src: '/logos/tether.svg', label: 'USDT' },
+  btc: { src: '/logos/bitcoin.svg', label: 'BTC' },
+  tsla: { src: '/logos/tesla.svg', label: 'Tesla 代币' },
+} as const
+
+type Brand = keyof typeof BRANDS
+
+function BrandCoin({
+  brand,
+  size = 'size-12',
+  flip = false,
+  delay = 0,
+}: {
+  brand: Brand
+  size?: string
+  flip?: boolean
+  delay?: number
+}) {
+  const { src, label } = BRANDS[brand]
+
+  const face = (
     <div
-      className={`${size} flex items-center justify-center rounded-full border-2 border-gold/60 bg-gradient-to-br from-white/25 via-white/5 to-black shadow-[0_0_18px_-4px_var(--color-gold)]`}
-    >
-      {Icon ? (
-        <Icon className="size-1/2 text-gold-light" strokeWidth={2} aria-hidden="true" />
-      ) : (
-        <SynapseXLogo className="size-1/2 text-gold-light" />
+      className={cn(
+        size,
+        'relative flex items-center justify-center overflow-hidden rounded-full border-2 border-gold/70 bg-gradient-to-br from-foreground/25 via-background to-background shadow-[0_0_22px_-4px_var(--color-gold)]',
       )}
-      {label ? <span className="sr-only">{label}</span> : null}
+    >
+      <span aria-hidden="true" className="absolute inset-[3px] rounded-full border border-foreground/10" />
+      <Image src={src} alt={label} width={48} height={48} className="relative size-[56%] object-contain" />
+      <motion.span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-foreground/40 to-transparent"
+        animate={{ x: ['0%', '520%'] }}
+        transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 3.2, delay, ease: 'easeInOut' }}
+      />
     </div>
   )
-}
 
-function SpinningLogoCoin({ size = 'size-16' }: { size?: string }) {
+  if (!flip) return face
+
   return (
-    <div style={{ perspective: 500 }}>
+    <div style={{ perspective: 600 }}>
       <motion.div
         animate={{ rotateY: [0, 360] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2.4, delay, ease: [0.65, 0, 0.35, 1] }}
         style={{ transformStyle: 'preserve-3d' }}
       >
-        <motion.div
-          animate={{ scale: [1, 1.08, 1] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <Coin size={size} label="oxxx.io" />
-        </motion.div>
+        {face}
       </motion.div>
     </div>
   )
 }
+
+function OrbitCoin({
+  brand,
+  index,
+  count,
+  rx,
+  ry,
+  period,
+  size,
+  reverse = false,
+}: {
+  brand: Brand
+  index: number
+  count: number
+  rx: number
+  ry: number
+  period: number
+  size: string
+  reverse?: boolean
+}) {
+  const reduce = useReducedMotion()
+  const time = useTime()
+  const offset = (index / count) * Math.PI * 2
+  const angle = useTransform(time, (t) =>
+    reduce ? offset : (reverse ? -1 : 1) * (t / period) * Math.PI * 2 + offset,
+  )
+  const x = useTransform(angle, (a) => Math.cos(a) * rx)
+  const y = useTransform(angle, (a) => Math.sin(a) * ry)
+  const depth = useTransform(angle, (a) => (Math.sin(a) + 1) / 2)
+  const scale = useTransform(depth, (d) => 0.62 + d * 0.48)
+  const opacity = useTransform(depth, (d) => 0.4 + d * 0.6)
+  const zIndex = useTransform(depth, (d) => (d > 0.5 ? 20 : 1))
+  const blur = useTransform(depth, (d) => `blur(${(1 - d) * 1.6}px)`)
+
+  return (
+    <motion.div className="absolute left-1/2 top-1/2" style={{ x, y, scale, opacity, zIndex, filter: blur }}>
+      <div className="-translate-x-1/2 -translate-y-1/2">
+        <BrandCoin brand={brand} size={size} flip delay={index * 0.6} />
+      </div>
+    </motion.div>
+  )
+}
+
+const ORBIT_ORDER: Brand[] = ['btc', 'nvda', 'usdt', 'tsla']
 
 function AccountsArt() {
   return (
-    <div className="relative flex size-56 items-center justify-center">
+    <div className="relative flex size-60 items-center justify-center">
+      <div
+        aria-hidden="true"
+        className="absolute left-1/2 top-1/2 h-24 w-56 -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-dashed border-gold/30"
+      />
       <motion.div
         aria-hidden="true"
-        className="absolute inset-4 rounded-full border-[6px] border-gold/50 border-t-transparent border-l-transparent"
-        style={{ rotateX: 65 }}
+        className="absolute left-1/2 top-1/2 h-24 w-56 -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-transparent border-t-gold/70"
         animate={{ rotate: 360 }}
-        transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       />
-      <motion.div
-        aria-hidden="true"
-        className="absolute inset-10 rounded-full border-[5px] border-foreground/25 border-b-transparent border-r-transparent"
-        style={{ rotateX: 65 }}
-        animate={{ rotate: -360 }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
-      />
+
       <motion.div
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="relative flex size-24 items-center justify-center rounded-2xl border border-gold/40 bg-gradient-to-b from-white/15 to-black"
+        className="relative z-10 flex size-24 items-center justify-center rounded-2xl border border-gold/40 bg-gradient-to-b from-foreground/15 to-background shadow-[0_20px_40px_-12px_var(--color-gold)]"
       >
-        <Landmark className="size-12 text-foreground/80" strokeWidth={1.5} aria-hidden="true" />
+        <Landmark className="size-11 text-foreground/85" strokeWidth={1.5} aria-hidden="true" />
+        <motion.span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-2xl border border-gold"
+          animate={{ opacity: [0.6, 0], scale: [1, 1.35] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+        />
       </motion.div>
-      <motion.div
-        className="absolute left-2 top-4"
-        animate={{ y: [0, -10, 0] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <SpinningLogoCoin size="size-14" />
-      </motion.div>
-      <motion.div
-        className="absolute bottom-4 right-6"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-      >
-        <Coin icon={DollarSign} label="稳定币" />
-      </motion.div>
-      <motion.div
-        className="absolute right-2 top-1/3"
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-      >
-        <Coin icon={Gem} size="size-10" label="数字资产" />
-      </motion.div>
+
+      {ORBIT_ORDER.map((brand, i) => (
+        <OrbitCoin key={brand} brand={brand} index={i} count={4} rx={104} ry={44} period={9000} size="size-12" />
+      ))}
     </div>
   )
 }
 
-const ORBIT_ICONS: LucideIcon[] = [Bitcoin, DollarSign, Gem, Landmark, Bitcoin, DollarSign, Gem, Landmark]
+const API_INNER: Brand[] = ['btc', 'usdt', 'nvda', 'tsla']
+const API_OUTER: Brand[] = ['tsla', 'nvda', 'usdt', 'btc']
 
 function ApiArt() {
   return (
-    <div className="relative flex size-56 items-center justify-center">
-      <motion.div
-        className="absolute inset-0"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-      >
-        {ORBIT_ICONS.map((icon, i) => {
-          const angle = (i / ORBIT_ICONS.length) * Math.PI * 2
-          const r = 92
-          return (
-            <motion.div
-              key={i}
-              className="absolute left-1/2 top-1/2"
-              style={{ x: Math.cos(angle) * r - 18, y: Math.sin(angle) * r - 18 }}
-              animate={{ rotate: -360, opacity: [0.55, 1, 0.55] }}
-              transition={{
-                rotate: { duration: 18, repeat: Infinity, ease: 'linear' },
-                opacity: { duration: 2, repeat: Infinity, delay: i * 0.25 },
-              }}
-            >
-              <Coin icon={icon} size="size-9" />
-            </motion.div>
-          )
-        })}
-      </motion.div>
+    <div className="relative flex size-60 items-center justify-center">
+      {API_INNER.map((_, i) => (
+        <motion.span
+          key={`stream-${i}`}
+          aria-hidden="true"
+          className="absolute left-1/2 top-1/2 h-px w-24 origin-left bg-gradient-to-r from-gold/0 via-gold to-gold/0"
+          style={{ rotate: i * 90 + 45 }}
+          animate={{ opacity: [0, 1, 0], scaleX: [0.2, 1, 0.2] }}
+          transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.35, ease: 'easeInOut' }}
+        />
+      ))}
 
-      <div className="relative flex h-16 w-32 -rotate-12 items-center rounded-full border-[6px] border-gold bg-black/60 p-1.5 shadow-[0_0_30px_-4px_var(--color-gold)]">
+      {API_OUTER.map((brand, i) => (
+        <OrbitCoin key={`o-${brand}`} brand={brand} index={i} count={4} rx={108} ry={96} period={16000} size="size-10" reverse />
+      ))}
+      {API_INNER.map((brand, i) => (
+        <OrbitCoin key={`i-${brand}`} brand={brand} index={i + 0.5} count={4} rx={74} ry={62} period={10000} size="size-9" />
+      ))}
+
+      <div className="relative z-10 flex h-14 w-28 -rotate-12 items-center rounded-full border-[5px] border-gold bg-background/80 p-1 shadow-[0_0_36px_-4px_var(--color-gold)]">
+        <motion.span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full border-2 border-gold"
+          animate={{ opacity: [0.7, 0], scale: [1, 1.4] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+        />
         <motion.div
-          animate={{ x: [0, 52, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-          className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-gold-light to-gold"
+          animate={{ x: [0, 54, 54, 0, 0] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: [0.65, 0, 0.35, 1], times: [0, 0.35, 0.5, 0.85, 1] }}
+          className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-gold-light to-gold"
         >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-          >
-            <SynapseXLogo className="size-6 text-black" />
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
+            <SynapseXLogo className="size-5 text-background" />
           </motion.div>
         </motion.div>
       </div>
@@ -137,15 +187,17 @@ function ApiArt() {
 }
 
 const CANDLES = [
-  { h: [44, 70, 44], up: true },
-  { h: [60, 38, 60], up: false },
-  { h: [36, 64, 36], up: true },
-  { h: [52, 80, 52], up: true },
+  { h: [44, 72, 44], up: true },
+  { h: [62, 36, 62], up: false },
+  { h: [34, 62, 34], up: true },
+  { h: [50, 84, 50], up: true },
 ]
+
+const STACK: Brand[] = ['usdt', 'usdt', 'usdt']
 
 function LiquidityArt() {
   return (
-    <div className="relative flex size-56 flex-col items-center justify-end gap-3 pb-4">
+    <div className="relative flex size-60 flex-col items-center justify-end gap-3 pb-4">
       <div className="flex h-28 items-end gap-4" aria-hidden="true">
         {CANDLES.map((c, i) => (
           <div key={i} className="flex flex-col items-center">
@@ -153,7 +205,7 @@ function LiquidityArt() {
             <motion.div
               animate={{ height: c.h }}
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
-              className={`w-4 rounded-sm ${c.up ? 'bg-gold' : 'bg-foreground/40'}`}
+              className={cn('w-4 rounded-sm', c.up ? 'bg-gold shadow-[0_0_12px_-2px_var(--color-gold)]' : 'bg-foreground/40')}
             />
             <div className="h-3 w-px bg-foreground/40" />
           </div>
@@ -161,19 +213,27 @@ function LiquidityArt() {
       </div>
 
       <motion.div
-        animate={{ rotate: [-8, 6, -8] }}
+        animate={{ rotate: [-7, 5, -7] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="relative h-2 w-44 origin-center rounded-full bg-gradient-to-r from-foreground/30 via-foreground/60 to-foreground/30"
+        className="relative h-2 w-44 origin-center rounded-full bg-gradient-to-r from-foreground/30 via-foreground/70 to-foreground/30"
       >
-        <div className="absolute -top-14 right-2 flex flex-col-reverse items-center">
-          {[0, 1, 2].map((n) => (
+        <div className="absolute bottom-2 right-2 flex flex-col-reverse items-center">
+          {STACK.map((brand, n) => (
             <motion.div
               key={n}
-              className="-mt-2 h-3 w-12 rounded-full border border-gold/60 bg-gradient-to-b from-gold-light/70 to-gold/40"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: [0, 1, 1, 0], y: [-20, 0, 0, 0] }}
-              transition={{ duration: 3.6, repeat: Infinity, delay: n * 0.5, times: [0, 0.2, 0.85, 1] }}
-            />
+              className="-mt-4"
+              initial={{ opacity: 0, y: -60 }}
+              animate={{ opacity: [0, 1, 1, 0], y: [-60, 0, 0, 0] }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                delay: n * 0.45,
+                times: [0, 0.18, 0.85, 1],
+                ease: [0.34, 1.56, 0.64, 1],
+              }}
+            >
+              <BrandCoin brand={brand} size="size-9" />
+            </motion.div>
           ))}
         </div>
       </motion.div>
@@ -184,14 +244,21 @@ function LiquidityArt() {
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <SpinningLogoCoin size="size-14" />
+        <BrandCoin brand="nvda" size="size-14" flip />
       </motion.div>
       <motion.div
-        className="absolute right-4 top-8"
+        className="absolute right-3 top-6"
         animate={{ y: [0, 8, 0] }}
         transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
       >
-        <Coin icon={Bitcoin} size="size-11" label="比特币" />
+        <BrandCoin brand="btc" size="size-12" flip delay={1.2} />
+      </motion.div>
+      <motion.div
+        className="absolute left-1/2 top-0 -translate-x-1/2"
+        animate={{ y: [0, -6, 0], rotate: [-6, 6, -6] }}
+        transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+      >
+        <BrandCoin brand="tsla" size="size-10" delay={2} />
       </motion.div>
     </div>
   )
@@ -217,41 +284,43 @@ const CARDS: { title: string; body: string; art: ReactNode }[] = [
 
 export function Institutional() {
   return (
-    <section
-      id="institutional"
-      aria-labelledby="institutional-heading"
-      className="relative flex w-full flex-col items-center overflow-hidden bg-black px-6 py-24 sm:px-10 lg:px-20"
-    >
-      <motion.h2
-        id="institutional-heading"
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.9 }}
-        className="text-gold-gradient max-w-4xl text-balance text-center text-[clamp(26px,4vw,48px)] font-bold leading-tight"
+    <MotionConfig reducedMotion="user">
+      <section
+        id="institutional"
+        aria-labelledby="institutional-heading"
+        className="relative flex w-full flex-col items-center overflow-hidden bg-black px-6 py-24 sm:px-10 lg:px-20"
       >
-        为机构与专业交易者，打造高性能交易引擎
-      </motion.h2>
+        <motion.h2
+          id="institutional-heading"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.9 }}
+          className="text-gold-gradient max-w-4xl text-balance text-center text-[clamp(26px,4vw,48px)] font-bold leading-tight"
+        >
+          为机构与专业交易者，打造高性能交易引擎
+        </motion.h2>
 
-      <ul className="mt-14 grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-3">
-        {CARDS.map((card, i) => (
-          <motion.li
-            key={card.title}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.8, delay: i * 0.15 }}
-            whileHover={{ y: -6 }}
-            className="group flex min-h-[26rem] flex-col justify-between gap-6 rounded-3xl border border-gold/10 bg-white/[0.04] p-7 transition-colors hover:border-gold/35"
-          >
-            <div className="flex flex-col gap-3">
-              <h3 className="text-pretty text-[20px] font-bold leading-snug text-foreground">{card.title}</h3>
-              <p className="text-pretty text-[14px] leading-relaxed text-foreground/50">{card.body}</p>
-            </div>
-            <div className="flex justify-center">{card.art}</div>
-          </motion.li>
-        ))}
-      </ul>
-    </section>
+        <ul className="mt-14 grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-3">
+          {CARDS.map((card, i) => (
+            <motion.li
+              key={card.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.8, delay: i * 0.15 }}
+              whileHover={{ y: -6 }}
+              className="group flex min-h-[27rem] flex-col justify-between gap-6 overflow-hidden rounded-3xl border border-gold/10 bg-white/[0.04] p-7 transition-colors hover:border-gold/35"
+            >
+              <div className="flex flex-col gap-3">
+                <h3 className="text-pretty text-[20px] font-bold leading-snug text-foreground">{card.title}</h3>
+                <p className="text-pretty text-[14px] leading-relaxed text-foreground/50">{card.body}</p>
+              </div>
+              <div className="flex justify-center">{card.art}</div>
+            </motion.li>
+          ))}
+        </ul>
+      </section>
+    </MotionConfig>
   )
 }
