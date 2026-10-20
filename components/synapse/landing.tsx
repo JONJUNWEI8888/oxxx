@@ -20,7 +20,10 @@ export function Landing() {
   return (
     <div
       className="bg-black text-white"
-      style={{ fontFamily: 'var(--font-space-mono), "Space Mono", monospace' }}
+      style={{
+        fontFamily:
+          'var(--font-space-mono), "Space Mono", var(--font-noto-sc), "PingFang SC", "Microsoft YaHei", monospace',
+      }}
     >
       <Navbar visible={entranceComplete} />
       <main>

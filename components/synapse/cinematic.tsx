@@ -32,7 +32,7 @@ export function Cinematic() {
           style={{ transform, opacity }}
           className="select-none px-6 text-center font-sans text-[22px] font-normal leading-[1.35] tracking-[-0.02em] text-white sm:px-12 sm:text-[30px] md:text-[36px] lg:text-[42px]"
         >
-          A neural-AI interface built on the architecture of the human nervous system. SynapseX
+          A neural-AI interface built on the architecture of the human nervous system. oxxx.io
           translates synaptic activity into computational intelligence. Every signal becomes
           measurable, structured, and visible. It continuously reconstructs internal state as a
           dynamic neural map. Biological noise is filtered into actionable cognitive patterns.

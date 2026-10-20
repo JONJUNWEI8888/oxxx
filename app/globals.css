@@ -1,10 +1,10 @@
 @import 'tailwindcss';
 
 @theme inline {
-  --font-sans: var(--font-space-mono), 'Space Mono', monospace;
-  --font-serif: var(--font-space-mono), 'Space Mono', monospace;
-  --font-mono: var(--font-space-mono), 'Space Mono', monospace;
-  --font-display: var(--font-anton-sc), 'Anton SC', sans-serif;
+  --font-sans: var(--font-space-mono), 'Space Mono', var(--font-noto-sc), 'PingFang SC', 'Microsoft YaHei', monospace;
+  --font-serif: var(--font-space-mono), 'Space Mono', var(--font-noto-sc), 'PingFang SC', 'Microsoft YaHei', monospace;
+  --font-mono: var(--font-space-mono), 'Space Mono', var(--font-noto-sc), 'PingFang SC', 'Microsoft YaHei', monospace;
+  --font-display: var(--font-anton-sc), 'Anton SC', var(--font-noto-sc), 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --color-background: #000000;
   --color-foreground: #ffffff;
 }

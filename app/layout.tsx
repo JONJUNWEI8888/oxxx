@@ -1,7 +1,13 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Anton_SC, Space_Mono } from 'next/font/google'
+import { Anton_SC, Noto_Sans_SC, Space_Mono } from 'next/font/google'
 import './globals.css'
+
+const notoSansSC = Noto_Sans_SC({
+  weight: ['300', '400'],
+  preload: false,
+  variable: '--font-noto-sc',
+})
 
 const spaceMono = Space_Mono({
   subsets: ['latin'],
@@ -17,9 +23,9 @@ const antonSC = Anton_SC({
 })
 
 export const metadata: Metadata = {
-  title: 'SynapseX — Brain And Body. One Network.',
+  title: 'oxxx.io — 下一个独角兽交易所',
   description:
-    'SynapseX is a neural-AI interface that maps neural pathways, cognitive load, and physiological states into a single adaptive intelligence layer.',
+    '公牛代表力量，也代表坚定向前的姿态。对 OXXX 而言，我们的目标是定义为下一代交易所UEX，迈向全景加密交易的新里程碑。',
   generator: 'v0.app',
 }
 
@@ -34,7 +40,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${spaceMono.variable} ${antonSC.variable} bg-background`}>
+    <html
+      lang="zh-CN"
+      className={`${spaceMono.variable} ${antonSC.variable} ${notoSansSC.variable} bg-background`}
+    >
       <head>
         <link
           rel="stylesheet"

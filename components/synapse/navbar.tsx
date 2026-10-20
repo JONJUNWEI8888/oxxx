@@ -93,7 +93,7 @@ export function Navbar({ visible }: { visible: boolean }) {
             className={`${open ? 'hidden md:flex' : 'flex'} h-12 items-center gap-2.5 rounded-[14px] bg-white/15 px-5 backdrop-blur-md`}
           >
             <SynapseXLogo className="size-[18px] text-white" />
-            <span className="text-[16px] font-medium tracking-tight text-white">SynapseX</span>
+            <span className="text-[16px] font-medium tracking-tight text-white">oxxx.io</span>
           </motion.a>
 
           <motion.div
@@ -158,7 +158,7 @@ export function Navbar({ visible }: { visible: boolean }) {
           >
             <span className="flex items-center gap-2 px-3.5">
               <SynapseXLogo className="size-[14px] text-white" />
-              <span className="text-[13px] font-medium tracking-tight text-white">SynapseX</span>
+              <span className="text-[13px] font-medium tracking-tight text-white">oxxx.io</span>
             </span>
           </motion.a>
 

@@ -114,9 +114,9 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
         <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-4">
             <h1 className={headingClass}>
-              <ScrambleIn text="Brain" delay={200} triggered={entranceComplete} />
+              <ScrambleIn text="下一个" delay={200} triggered={entranceComplete} />
               <br />
-              <ScrambleIn text="And Body" delay={500} triggered={entranceComplete} />
+              <ScrambleIn text="独角兽交易所" delay={500} triggered={entranceComplete} />
             </h1>
             <motion.p
               initial={{ opacity: 0, y: 25 }}
@@ -124,16 +124,15 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
               transition={{ duration: 0.9, ease: [0.215, 0.61, 0.355, 1], delay: 0.2 }}
               className="max-w-sm text-[13px] leading-relaxed text-white/60 sm:text-[15px]"
             >
-              Built at the intersection of neuroscience and artificial intelligence. SynapseX
-              continuously maps neural pathways, cognitive load, and physiological states into a
-              single adaptive intelligence layer.
+              公牛代表力量，也代表坚定向前的姿态。对 OXXX
+              而言，我们的目标是定义为下一代交易所UEX，迈向全景加密交易的新里程碑。
             </motion.p>
           </div>
 
           <h2 className={`${headingClass} text-left md:text-right`}>
-            <ScrambleIn text="One" delay={700} triggered={entranceComplete} />
+            <ScrambleIn text="加密" delay={700} triggered={entranceComplete} />
             <br />
-            <ScrambleIn text="Network" delay={1000} triggered={entranceComplete} />
+            <ScrambleIn text="革命" delay={1000} triggered={entranceComplete} />
           </h2>
         </div>
       </motion.div>
