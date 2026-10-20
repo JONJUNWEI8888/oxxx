@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { ScrambleIn } from './scramble'
+import { MarketSwitch } from './market-switch'
 
 const HERO_VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_083515_290e5a10-0b95-41af-a5e2-32b6389baa4d.mp4'
@@ -132,6 +133,15 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
             </motion.p>
           </div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={entranceComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          transition={{ duration: 0.9, ease: [0.215, 0.61, 0.355, 1], delay: 0.6 }}
+          className="relative mt-auto flex justify-center sm:justify-end"
+        >
+          <MarketSwitch />
+        </motion.div>
       </motion.div>
     </section>
   )
