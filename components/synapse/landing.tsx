@@ -8,6 +8,7 @@ import { Hero } from './hero'
 import { LiveMarkets } from './live-markets'
 import { Metrics } from './metrics'
 import { Navbar } from './navbar'
+import { Security } from './security'
 import { Technology } from './technology'
 import { TickerTape } from './ticker-tape'
 
@@ -36,6 +37,7 @@ export function Landing() {
         <TickerTape />
         <Technology />
         <Architecture />
+        <Security />
         <LiveMarkets />
       </main>
       <Footer />
