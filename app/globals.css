@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: var(--font-space-mono), 'Space Mono', monospace;
+  --font-serif: var(--font-space-mono), 'Space Mono', monospace;
+  --font-mono: var(--font-space-mono), 'Space Mono', monospace;
+  --font-display: var(--font-anton-sc), 'Anton SC', sans-serif;
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    background: #000;
+    color: #fff;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
