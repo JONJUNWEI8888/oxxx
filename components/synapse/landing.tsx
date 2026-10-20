@@ -5,6 +5,7 @@ import { Architecture } from './architecture'
 import { Cinematic } from './cinematic'
 import { Footer } from './footer'
 import { Hero } from './hero'
+import { LiveMarkets } from './live-markets'
 import { Metrics } from './metrics'
 import { Navbar } from './navbar'
 import { Technology } from './technology'
@@ -35,6 +36,7 @@ export function Landing() {
         <TickerTape />
         <Technology />
         <Architecture />
+        <LiveMarkets />
       </main>
       <Footer />
     </div>
