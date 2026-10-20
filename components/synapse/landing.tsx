@@ -35,7 +35,6 @@ export function Landing() {
         <TickerTape />
         <Cinematic />
         <Metrics />
-        <TickerTape />
         <Technology />
         <Architecture />
         <Security />
