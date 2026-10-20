@@ -1,10 +1,14 @@
 'use client'
 
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 
+const EDGE_FADE =
+  'linear-gradient(to right, transparent 0%, #000 22%, #000 82%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 18%, #000 78%, transparent 100%)'
+
 export function Architecture() {
+  const reduceMotion = useReducedMotion()
   return (
     <section
       id="platform"
@@ -16,7 +20,7 @@ export function Architecture() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 1 }}
-          className="flex w-full flex-col gap-8 md:w-1/2"
+          className="relative z-10 flex w-full flex-col gap-8 md:w-[42%] md:shrink-0"
         >
           <h2 className="text-gold-gradient text-balance text-[clamp(28px,4.2vw,52px)] font-bold leading-[1.3] tracking-[-0.01em]">
             专业交易平台：
@@ -39,21 +43,30 @@ export function Architecture() {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.6, y: 40 }}
+          whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 1.2, delay: 0.2 }}
-          className="w-full md:w-1/2"
+          transition={{ duration: 1.1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-[125%] max-w-none md:-mr-32 md:w-[72%] md:shrink-0 lg:-mr-48 lg:w-[78%]"
+          style={{ perspective: 1200 }}
         >
           <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            animate={reduceMotion ? undefined : { scale: [1, 1.06, 1], y: [0, 6, 0], rotateX: [0, 3, 0] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="origin-bottom"
+            style={{
+              maskImage: EDGE_FADE,
+              WebkitMaskImage: EDGE_FADE,
+              maskComposite: 'intersect',
+              WebkitMaskComposite: 'source-in',
+            }}
           >
             <Image
-src="/images/chrome-bull.png"
-  alt="镜面铬金属机甲公牛，粉色霓虹眼睛与轮廓光，脚下环绕发光圆环与K线"
+              src="/images/chrome-bull-charge.png"
+              alt="镜面铬金属机甲公牛正面冲向镜头，粉色霓虹双眼，蹄下踏碎地面，比特币、以太坊、USDT、BNB、Solana 等加密货币四散飞溅"
               width={1408}
               height={768}
+              priority
               className="h-auto w-full"
             />
           </motion.div>
