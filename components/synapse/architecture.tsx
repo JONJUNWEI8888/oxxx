@@ -1,52 +1,63 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { CryptoField } from './crypto-field'
-
-const LAYERS = ['Capture', 'Process', 'Interface']
+import { ArrowRight } from 'lucide-react'
 
 export function Architecture() {
   return (
-    <section className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-black px-6 py-32">
-      <CryptoField density={10} candles className="absolute inset-0 size-full opacity-60" />
-      <div className="relative z-10 w-full max-w-3xl text-center">
+    <section
+      id="platform"
+      className="relative flex min-h-screen w-full items-center overflow-hidden bg-black px-6 py-24 sm:px-10 lg:px-20"
+    >
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 md:flex-row md:gap-10">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, x: -30 }}
+          whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 1 }}
+          className="flex w-full flex-col gap-8 md:w-1/2"
         >
-          <p className="mb-8 text-[13px] uppercase tracking-[0.3em] text-gold sm:text-[14px]">
-            Architecture
-          </p>
-          <h2 className="text-gold-gradient animate-shimmer mb-10 text-balance text-[clamp(28px,6vw,56px)] font-light leading-[1.15] tracking-[-0.02em]">
-            Three layers. Zero friction.
+          <h2 className="text-gold-gradient text-balance text-[clamp(28px,4.2vw,52px)] font-bold leading-[1.3] tracking-[-0.01em]">
+            专业交易平台：
+            <br />
+            美股代币化、加密现货与合约一站交易
           </h2>
-          <p className="mx-auto max-w-xl text-pretty text-[15px] leading-relaxed text-foreground/55 sm:text-[17px]">
-            Sensor layer captures raw bioelectric signals. Processing layer isolates intent.
-            Interface layer delivers structured output to any connected system.
+          <p className="text-pretty text-[15px] leading-relaxed text-foreground/60 sm:text-[16px]">
+            oxxx.io 以 UEX 全景交易为核心，将美股代币化资产与主流加密货币汇聚于同一账户。平台提供高速撮合引擎、多种订单类型与全天候交易时段，并开放
+            App 与 API 接入，满足从入门交易到专业量化策略的全部需求。
           </p>
+          <a
+            href="#presale"
+            className="group flex w-fit items-center gap-3 text-[15px] text-gold-light transition-colors hover:text-gold"
+          >
+            <span className="flex size-10 items-center justify-center rounded-lg border border-gold/50 transition-colors group-hover:border-gold group-hover:bg-gold/10">
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </span>
+            立即体验
+          </a>
         </motion.div>
 
-        <motion.ol
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 1.2, delay: 0.4 }}
-          className="mt-20 flex flex-col items-center gap-4"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 1.2, delay: 0.2 }}
+          className="w-full md:w-1/2"
         >
-          {LAYERS.map((name, i) => (
-            <li
-              key={name}
-              className="flex h-[72px] w-full max-w-md items-center justify-between rounded-lg border border-gold/25 bg-gold-deep/80 px-6 transition-colors hover:border-gold/60"
-            >
-              <span className="text-[12px] uppercase tracking-[0.15em] text-gold/70">
-                Layer {i + 1}
-              </span>
-              <span className="text-[16px] font-light text-gold-light sm:text-[18px]">{name}</span>
-            </li>
-          ))}
-        </motion.ol>
+          <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <Image
+              src="/images/bull-pedestal.png"
+              alt="金色玻璃质感公牛伫立在刻有K线与比特币图案的金属方块上"
+              width={1408}
+              height={768}
+              className="h-auto w-full"
+            />
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   )
