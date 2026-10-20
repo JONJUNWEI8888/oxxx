@@ -50,7 +50,6 @@ export function PresaleTracker() {
 
   const raised = data?.raised ?? 0
   const pct = Math.min(100, (raised / PRESALE.hardCapUsdt) * 100)
-  const sold = Math.min(PRESALE.roundSupply, raised / PRESALE.priceUsdt)
   const { line, area } = buildPath(history.current)
 
   return (
@@ -85,7 +84,7 @@ export function PresaleTracker() {
         </div>
         <div className="flex justify-between text-[13px] text-white/40 sm:text-[14px]">
           <span>{pct.toFixed(2)}%</span>
-          <span>上限 {usd(PRESALE.hardCapUsdt)} USDT</span>
+          <span>私募目标 {usd(PRESALE.hardCapUsdt)} USDT</span>
         </div>
       </div>
 
@@ -128,21 +127,6 @@ export function PresaleTracker() {
         </svg>
         <figcaption className="text-[13px] text-white/40">每 15 秒同步 BSC 链上地址余额</figcaption>
       </figure>
-
-      <dl className="grid grid-cols-3 gap-4 border-t border-gold/20 pt-6">
-        <Stat label="已认购" value={`${usd(sold)} OX`} />
-        <Stat label="首轮发行" value="21,000,000 OX" />
-        <Stat label="价格" value="1 USDT / OX" />
-      </dl>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="text-[13px] text-gold-light/60">{label}</dt>
-      <dd className="text-[14px] text-foreground sm:text-[16px]">{value}</dd>
     </div>
   )
 }
