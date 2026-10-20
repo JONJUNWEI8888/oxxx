@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { Architecture } from './architecture'
-import { Cinematic } from './cinematic'
 import { Footer } from './footer'
 import { Hero } from './hero'
 import { Institutional } from './institutional'
 import { LiveMarkets } from './live-markets'
 import { Metrics } from './metrics'
 import { Navbar } from './navbar'
+import { Securities } from './securities'
 import { Security } from './security'
 import { Technology } from './technology'
 import { TickerTape } from './ticker-tape'
@@ -33,7 +33,7 @@ export function Landing() {
       <main>
         <Hero entranceComplete={entranceComplete} />
         <TickerTape />
-        <Cinematic />
+        <Securities />
         <Metrics />
         <Technology />
         <Architecture />
