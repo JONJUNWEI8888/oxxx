@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Architecture } from './architecture'
+import { AssetAnalysis } from './asset-analysis'
 import { Footer } from './footer'
 import { Hero } from './hero'
 import { Institutional } from './institutional'
@@ -36,7 +36,7 @@ export function Landing() {
         <Securities />
         <Metrics />
         <Technology />
-        <Architecture />
+        <AssetAnalysis />
         <Security />
         <Institutional />
         <LiveMarkets />
