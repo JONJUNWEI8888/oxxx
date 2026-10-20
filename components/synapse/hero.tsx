@@ -9,7 +9,7 @@ const HERO_VIDEO =
 
 const SENSITIVITY = 0.8
 const headingClass =
-  'text-white font-light leading-[1.1] tracking-[-0.02em] text-[clamp(32px,6vw,64px)]'
+  'text-white font-medium leading-[1.12] tracking-[-0.01em] antialiased text-[clamp(32px,4.4vw,60px)]'
 
 function useMouseScrub() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -75,6 +75,11 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
 
       <div
         aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-black/80 via-black/40 to-transparent md:h-[40%] md:from-black/50 md:via-black/15"
+      />
+
+      <div
+        aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-5"
         style={{
           backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
@@ -109,10 +114,8 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
           </span>
         </div>
 
-        <div className="flex-1" />
-
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-4">
+  <div className="relative flex flex-col gap-6 pt-6 sm:pt-8 md:pt-10">
+  <div className="flex max-w-md flex-col gap-4 [text-shadow:0_2px_16px_rgba(0,0,0,0.85),0_0_2px_rgba(0,0,0,0.6)]">
             <h1 className={headingClass}>
               <ScrambleIn text="下一个" delay={200} triggered={entranceComplete} />
               <br />
@@ -122,7 +125,7 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
               initial={{ opacity: 0, y: 25 }}
               animate={entranceComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: 25 }}
               transition={{ duration: 0.9, ease: [0.215, 0.61, 0.355, 1], delay: 0.2 }}
-              className="max-w-sm text-[13px] leading-relaxed text-white/60 sm:text-[15px]"
+              className="max-w-[17rem] text-sm leading-relaxed text-white/90 antialiased md:max-w-[14rem] md:text-[15px] lg:max-w-xs"
             >
               公牛代表力量，也代表坚定向前的姿态。对 OXXX
               而言，我们的目标是定义为下一代交易所UEX，迈向全景加密交易的新里程碑。
