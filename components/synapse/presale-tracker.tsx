@@ -56,22 +56,22 @@ export function PresaleTracker() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-[13px] uppercase tracking-[0.2em] text-white/40">
+        <div className="flex items-center gap-2 text-[13px] uppercase tracking-[0.2em] text-gold-light/70">
           <span
-            className={`size-2 rounded-full ${error ? 'bg-white/30' : 'animate-pulse bg-white'}`}
+            className={`size-2 rounded-full ${error ? 'bg-white/30' : 'animate-pulse bg-gold'}`}
             aria-hidden="true"
           />
           {error ? '链上数据暂不可用' : '链上实时募资'}
         </div>
         <p className="text-[clamp(40px,8vw,80px)] font-light leading-none tracking-[-0.04em] text-white">
           {isLoading ? '—' : usd(raised)}
-          <span className="ml-3 text-[16px] tracking-normal text-white/40">USDT</span>
+          <span className="ml-3 text-[16px] tracking-normal text-gold">USDT</span>
         </p>
       </div>
 
       <div className="flex flex-col gap-3">
         <div
-          className="h-1 w-full overflow-hidden rounded-full bg-white/10"
+          className="h-1.5 w-full overflow-hidden rounded-full bg-gold/15"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -79,7 +79,7 @@ export function PresaleTracker() {
           aria-label="私募进度"
         >
           <div
-            className="h-full rounded-full bg-white transition-[width] duration-1000"
+            className="h-full rounded-full bg-gradient-to-r from-gold to-gold-light transition-[width] duration-1000"
             style={{ width: `${Math.max(pct, 0.5)}%` }}
           />
         </div>
@@ -110,12 +110,12 @@ export function PresaleTracker() {
               x2={W}
               y1={H * r}
               y2={H * r}
-              className="stroke-white/10"
+              className="stroke-gold/15"
               strokeWidth="1"
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          <g className="text-white">
+          <g className="text-gold">
             <path d={area} fill="url(#presale-fill)" />
             <path
               d={line}
@@ -129,7 +129,7 @@ export function PresaleTracker() {
         <figcaption className="text-[13px] text-white/40">每 15 秒同步 BSC 链上地址余额</figcaption>
       </figure>
 
-      <dl className="grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+      <dl className="grid grid-cols-3 gap-4 border-t border-gold/20 pt-6">
         <Stat label="已认购" value={`${usd(sold)} OX`} />
         <Stat label="首轮发行" value="21,000,000 OX" />
         <Stat label="价格" value="1 USDT / OX" />
@@ -141,8 +141,8 @@ export function PresaleTracker() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-[13px] text-white/40">{label}</dt>
-      <dd className="text-[14px] text-white sm:text-[16px]">{value}</dd>
+      <dt className="text-[13px] text-gold-light/60">{label}</dt>
+      <dd className="text-[14px] text-foreground sm:text-[16px]">{value}</dd>
     </div>
   )
 }

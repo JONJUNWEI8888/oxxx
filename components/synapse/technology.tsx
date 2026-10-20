@@ -1,12 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { BgVideo } from './bg-video'
+import { CryptoField } from './crypto-field'
 import { PresaleQr } from './presale-qr'
 import { PresaleTracker } from './presale-tracker'
-
-const VIDEO =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_095750_32a52ce0-2005-45c9-9093-41f03fde9530.mp4'
 
 const viewport = { once: true, amount: 0.2 }
 
@@ -16,17 +14,33 @@ export function Technology() {
       id="presale"
       className="relative min-h-screen min-h-[100dvh] w-full overflow-hidden bg-black"
     >
-      <BgVideo src={VIDEO} className="absolute inset-0 size-full" />
+      <Image
+        src="/images/gold-bull-head.png"
+        alt=""
+        aria-hidden="true"
+        width={900}
+        height={900}
+        className="pointer-events-none absolute -right-40 top-1/2 w-[70vw] max-w-[900px] -translate-y-1/2 opacity-20"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/40"
+      />
+      <CryptoField density={8} candles={false} className="absolute inset-0 size-full opacity-70" />
+
       <div className="relative z-10 mx-auto flex min-h-screen min-h-[100dvh] w-full max-w-6xl flex-col justify-center gap-10 px-8 pb-16 pt-28 sm:px-12 md:px-16">
-        <motion.h2
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={viewport}
           transition={{ duration: 1 }}
-          className="text-[clamp(36px,7vw,64px)] font-light leading-[0.95] tracking-[-0.03em] text-white"
+          className="flex flex-col gap-3"
         >
-          OX 首轮私募
-        </motion.h2>
+          <span className="text-[13px] uppercase tracking-[0.3em] text-gold">Private Round</span>
+          <h2 className="text-gold-gradient animate-shimmer text-[clamp(36px,7vw,64px)] font-light leading-[0.95] tracking-[-0.03em]">
+            OX 首轮私募
+          </h2>
+        </motion.div>
 
         <div className="grid grid-cols-1 gap-12 md:grid-cols-5 md:gap-12 lg:gap-16">
           <motion.div
@@ -43,7 +57,7 @@ export function Technology() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={viewport}
             transition={{ duration: 1, delay: 0.3 }}
-            className="md:col-span-2"
+            className="rounded-xl border border-gold/25 bg-gold-deep/70 p-6 backdrop-blur-sm md:col-span-2"
           >
             <PresaleQr />
           </motion.div>

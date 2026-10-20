@@ -1,10 +1,8 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { BgVideo } from './bg-video'
-
-const VIDEO =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_092455_089c54f8-3b03-4966-9df1-e9746063d0ef.mp4'
+import Image from 'next/image'
+import { motion, useReducedMotion } from 'framer-motion'
+import { CryptoField } from './crypto-field'
 
 const TOKEN_SPECS = [
   { label: '代币名称／符号', value: 'OX' },
@@ -19,17 +17,37 @@ const TOKEN_SPECS = [
 ]
 
 export function Cinematic() {
+  const reduceMotion = useReducedMotion()
+
   return (
     <section
       id="about"
       className="relative flex min-h-screen min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-black px-6 py-28 sm:px-12"
     >
-      <BgVideo src={VIDEO} className="absolute inset-0 size-full" />
+      <motion.div
+        aria-hidden="true"
+        className="absolute inset-0"
+        animate={reduceMotion ? undefined : { scale: [1.02, 1.08, 1.02] }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <Image
+          src="/images/gold-bull.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-right opacity-60"
+        />
+      </motion.div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[180px]"
-        style={{ background: 'linear-gradient(to bottom, #010103, transparent)' }}
+        className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/20"
       />
+      <CryptoField density={14} candles={false} className="absolute inset-0 size-full" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-44 bg-gradient-to-b from-black to-transparent"
+      />
+
       <div className="relative z-20 flex w-full max-w-5xl flex-col gap-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -38,15 +56,15 @@ export function Cinematic() {
           transition={{ duration: 1 }}
           className="flex flex-col gap-3"
         >
-          <span className="text-[13px] uppercase tracking-[0.2em] text-white/40 sm:text-[14px]">
+          <span className="text-[13px] uppercase tracking-[0.3em] text-gold sm:text-[14px]">
             Token
           </span>
-          <h2 className="text-[clamp(56px,10vw,120px)] font-light leading-none tracking-[-0.04em] text-white">
+          <h2 className="text-gold-gradient animate-shimmer text-[clamp(56px,10vw,120px)] font-light leading-none tracking-[-0.04em]">
             OX
           </h2>
         </motion.div>
 
-        <dl className="grid grid-cols-1 border-t border-white/15 md:grid-cols-3">
+        <dl className="grid grid-cols-1 border-t border-gold/30 md:grid-cols-3">
           {TOKEN_SPECS.map((spec, i) => (
             <motion.div
               key={spec.label}
@@ -54,14 +72,14 @@ export function Cinematic() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, delay: (i % 3) * 0.12 + Math.floor(i / 3) * 0.08 }}
-              className="flex flex-col gap-2 border-b border-white/15 py-6 md:pr-6"
+              className="group flex flex-col gap-2 border-b border-gold/20 py-6 md:pr-6"
             >
-              <dt className="text-[14px] tracking-wide text-white/45">{spec.label}</dt>
+              <dt className="text-[14px] tracking-wide text-gold-light/60">{spec.label}</dt>
               <dd className="flex flex-col gap-1">
-                <span className="text-[22px] font-light leading-snug tracking-[-0.01em] text-white sm:text-[26px]">
+                <span className="text-[22px] font-light leading-snug tracking-[-0.01em] text-foreground transition-colors group-hover:text-gold-light sm:text-[26px]">
                   {spec.value}
                 </span>
-                {spec.note && <span className="text-[14px] text-white/45">{spec.note}</span>}
+                {spec.note && <span className="text-[14px] text-gold">{spec.note}</span>}
               </dd>
             </motion.div>
           ))}

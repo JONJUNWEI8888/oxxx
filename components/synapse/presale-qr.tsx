@@ -25,12 +25,12 @@ export function PresaleQr() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <p className="text-[13px] uppercase tracking-[0.2em] text-white/40">唯一指定私募地址</p>
+          <p className="text-[13px] uppercase tracking-[0.2em] text-gold">唯一指定私募地址</p>
           <p className="text-pretty text-[14px] leading-relaxed text-white/60">
             仅支持 BSC 链 USDT (BEP-20)，请勿转入其他链或其他币种。
           </p>
         </div>
-        <div className="self-start overflow-hidden rounded-lg bg-white p-2">
+        <div className="self-start overflow-hidden rounded-lg bg-white p-2 ring-1 ring-gold ring-offset-4 ring-offset-gold-deep">
           <Image
             src="/images/usdt-qr.jpg"
             alt="OX 私募 USDT (BSC) 收款二维码"
@@ -41,14 +41,14 @@ export function PresaleQr() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
-        <code className="break-all font-mono text-[14px] leading-relaxed text-white">
+      <div className="flex flex-col gap-3 border-t border-gold/20 pt-6">
+        <code className="break-all font-mono text-[14px] leading-relaxed text-gold-light">
           {PRESALE.address}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="self-start rounded-full border border-white/20 px-5 py-2 text-[14px] text-white transition-colors hover:bg-white/10"
+          className="self-start rounded-full border border-gold bg-gold px-5 py-2 text-[14px] text-black transition-colors hover:bg-gold-light"
         >
           {copied ? '已复制' : '复制地址'}
         </button>
@@ -57,8 +57,8 @@ export function PresaleQr() {
         </span>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
-        <label htmlFor="usdt-amount" className="text-[13px] uppercase tracking-[0.2em] text-white/40">
+      <div className="flex flex-col gap-3 border-t border-gold/20 pt-6">
+        <label htmlFor="usdt-amount" className="text-[13px] uppercase tracking-[0.2em] text-gold">
           认购计算
         </label>
         <div className="flex items-center gap-3">
@@ -69,13 +69,13 @@ export function PresaleQr() {
             min={0}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full min-w-0 border-b border-white/20 bg-transparent py-2 text-[20px] font-light text-white outline-none focus:border-white"
+            className="w-full min-w-0 border-b border-gold/30 bg-transparent py-2 text-[20px] font-light text-white outline-none focus:border-gold"
           />
           <span className="text-[14px] text-white/40">USDT</span>
         </div>
         <p className="text-[14px] text-white/60">
           {'≈ '}
-          <span className="text-white">{ox.toLocaleString('en-US')}</span>
+          <span className="text-gold-light">{ox.toLocaleString('en-US')}</span>
           {' OX · 1 USDT = 1 OX'}
         </p>
       </div>

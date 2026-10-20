@@ -8,6 +8,7 @@ import { Hero } from './hero'
 import { Metrics } from './metrics'
 import { Navbar } from './navbar'
 import { Technology } from './technology'
+import { TickerTape } from './ticker-tape'
 
 export function Landing() {
   const [entranceComplete, setEntranceComplete] = useState(false)
@@ -28,8 +29,10 @@ export function Landing() {
       <Navbar visible={entranceComplete} />
       <main>
         <Hero entranceComplete={entranceComplete} />
+        <TickerTape />
         <Cinematic />
         <Metrics />
+        <TickerTape />
         <Technology />
         <Architecture />
       </main>
