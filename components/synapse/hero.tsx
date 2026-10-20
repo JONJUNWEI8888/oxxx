@@ -5,8 +5,7 @@ import { useEffect, useRef } from 'react'
 import { ScrambleIn } from './scramble'
 import { MarketSwitch } from './market-switch'
 
-const HERO_VIDEO =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_083515_290e5a10-0b95-41af-a5e2-32b6389baa4d.mp4'
+const HERO_VIDEO = '/videos/hero.mp4'
 
 const SENSITIVITY = 0.8
 const headingClass =
@@ -34,7 +33,16 @@ function useMouseScrub() {
       if (Math.abs(video.currentTime - targetTime) > 0.01) seekTo()
     }
 
+    const canScrub = window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    let scrubbing = false
+
     const onMove = (e: MouseEvent) => {
+      if (!canScrub) return
+      if (!scrubbing) {
+        scrubbing = true
+        video.pause()
+        targetTime = video.currentTime
+      }
       if (lastX === null) {
         lastX = e.clientX
         return
@@ -47,8 +55,8 @@ function useMouseScrub() {
       if (!seeking) seekTo()
     }
 
-    video.pause()
-    video.currentTime = 0
+    video.muted = true
+    video.play().catch(() => {})
     video.addEventListener('seeked', onSeeked)
     window.addEventListener('mousemove', onMove)
     return () => {
@@ -68,9 +76,12 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
       <video
         ref={videoRef}
         src={HERO_VIDEO}
+        autoPlay
         muted
+        loop
         playsInline
         preload="auto"
+        aria-hidden="true"
         className="absolute inset-0 size-full object-cover"
       />
 
