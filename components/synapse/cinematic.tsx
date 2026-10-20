@@ -1,8 +1,10 @@
 'use client'
 
-import Image from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
-import { CryptoField } from './crypto-field'
+import { BgVideo } from './bg-video'
+
+const VIDEO =
+  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_092455_089c54f8-3b03-4966-9df1-e9746063d0ef.mp4'
 
 const TOKEN_SPECS = [
   { label: '代币名称／符号', value: 'OX' },
@@ -27,22 +29,15 @@ export function Cinematic() {
       <motion.div
         aria-hidden="true"
         className="absolute inset-0"
-        animate={reduceMotion ? undefined : { scale: [1.02, 1.08, 1.02] }}
+        animate={reduceMotion ? undefined : { scale: [1.02, 1.06, 1.02] }}
         transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <Image
-          src="/images/gold-bull.png"
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover object-right opacity-60"
-        />
+        <BgVideo src={VIDEO} className="absolute inset-0 size-full" />
       </motion.div>
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/20"
+        className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/10"
       />
-      <CryptoField density={14} candles={false} className="absolute inset-0 size-full" />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 z-10 h-44 bg-gradient-to-b from-black to-transparent"

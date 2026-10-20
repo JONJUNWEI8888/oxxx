@@ -7,9 +7,9 @@
   --font-display: var(--font-anton-sc), 'Anton SC', var(--font-noto-sc), 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --color-background: #000000;
   --color-foreground: #ffffff;
-  --color-gold: #d4af37;
-  --color-gold-light: #f5d98b;
-  --color-gold-deep: #120d04;
+  --color-gold: #ee9ac4;
+  --color-gold-light: #ffd9ec;
+  --color-gold-deep: #12080f;
 
   --animate-marquee: marquee 45s linear infinite;
   --animate-shimmer: shimmer 7s ease-in-out infinite;

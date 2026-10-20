@@ -1,5 +1,8 @@
-import Image from 'next/image'
+import { BgVideo } from './bg-video'
 import { SynapseXLogo } from './logo'
+
+const VIDEO =
+  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_080203_fd7f4f85-3a86-4837-8192-85e7bfe68e75.mp4'
 
 const LINK_GROUPS = [
   { title: '产品', links: [{ label: '加密行情', href: '#markets' }, { label: '美股代币化', href: '#platform' }, { label: 'OX 私募', href: '#presale' }] },
@@ -11,13 +14,7 @@ export function Footer() {
   return (
     <footer className="relative flex min-h-[480px] flex-col overflow-hidden border-t border-gold/25 bg-black md:flex-row">
       <div className="relative h-[320px] w-full md:h-auto md:w-1/2">
-        <Image
-          src="/images/gold-bull-head.png"
-          alt="金色华尔街公牛"
-          fill
-          sizes="(min-width: 768px) 50vw, 100vw"
-          className="object-cover"
-        />
+        <BgVideo src={VIDEO} className="absolute inset-0 size-full" />
         <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-r from-transparent to-black md:block" />
       </div>
       <div className="relative flex w-full flex-col justify-between gap-12 p-10 sm:p-16 md:w-1/2">

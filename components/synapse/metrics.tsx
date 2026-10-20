@@ -1,7 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { CryptoField } from './crypto-field'
+import { BgVideo } from './bg-video'
+
+const VIDEO =
+  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_095810_ecea3dd2-fc5e-4e41-8696-4219290b6589.mp4'
 
 const METRICS = [
   { value: '2.4ms', label: '撮合速度' },
@@ -15,7 +18,8 @@ export function Metrics() {
       id="metrics"
       className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-black px-6 pb-32 pt-32"
     >
-      <CryptoField density={12} candles className="absolute inset-0 size-full" />
+      <BgVideo src={VIDEO} className="absolute inset-0 size-full" />
+      <div aria-hidden="true" className="absolute inset-0 bg-black/45" />
       <div className="relative z-10 w-full max-w-6xl">
         <motion.h2
           initial={{ opacity: 0 }}
