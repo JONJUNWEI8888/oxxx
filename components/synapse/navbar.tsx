@@ -89,7 +89,7 @@ export function Navbar({ visible }: { visible: boolean }) {
             {t('VIP礼遇通道', 'VIP Access')}
           </a>
           <a
-            href="#"
+            href="/register"
             className="hidden h-12 items-center rounded-full bg-white/15 px-5 text-[15px] text-white backdrop-blur-md transition-colors hover:bg-white/25 md:flex"
           >
             {t('注册', 'Sign Up')}

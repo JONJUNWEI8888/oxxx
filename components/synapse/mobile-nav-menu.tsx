@@ -84,7 +84,7 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
               {t('VIP礼遇通道', 'VIP Access')}
             </a>
             <a
-              href="#"
+              href="/register"
               className="flex h-11 flex-1 items-center justify-center rounded-full bg-white/10 text-[14px] text-white"
             >
               {t('注册', 'Sign Up')}

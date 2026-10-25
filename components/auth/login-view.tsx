@@ -15,7 +15,7 @@ const PHONE_RE = /^\d{6,15}$/
 
 const DIAL_CODES = ['+86', '+852', '+65', '+1', '+44', '+81'] as const
 
-function TopBar() {
+export function TopBar() {
   const { t } = useI18n()
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-line px-4 sm:px-6 md:px-8">
@@ -39,7 +39,7 @@ function TopBar() {
   )
 }
 
-function WelcomePanel() {
+export function WelcomePanel() {
   const { t } = useI18n()
   return (
     <section className="relative hidden flex-1 flex-col overflow-hidden bg-panel px-10 pt-16 lg:flex xl:px-16">
@@ -345,9 +345,9 @@ function LoginForm() {
 
       <p className="-mt-6 text-center text-sm text-foreground/60">
         {t('还没有账号？', "Don't have an account?")}{' '}
-        <a href="#" className="font-bold text-gold transition-colors hover:text-gold-light">
+        <Link href="/register" className="font-bold text-gold transition-colors hover:text-gold-light">
           {t('立即注册', 'Sign up now')}
-        </a>
+        </Link>
       </p>
     </div>
   )
