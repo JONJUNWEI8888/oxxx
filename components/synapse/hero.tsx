@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { HeroHeadline } from './hero-headline'
 import { MarketSwitch } from './market-switch'
+import { VisorLaser } from './visor-laser'
 
 const HERO_VIDEO = '/videos/hero.mp4'
 
@@ -84,6 +85,8 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
         aria-hidden="true"
         className="absolute inset-0 size-full object-cover"
       />
+
+      <VisorLaser videoRef={videoRef} />
 
       <div
         aria-hidden="true"
