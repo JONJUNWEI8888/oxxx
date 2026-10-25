@@ -10,6 +10,10 @@
   --color-gold: #ee9ac4;
   --color-gold-light: #ffd9ec;
   --color-gold-deep: #12080f;
+  --color-up: #2ebd85;
+  --color-down: #f6465d;
+  --color-panel: #0d0b0c;
+  --color-line: #231d21;
 
   --animate-marquee: marquee 45s linear infinite;
   --animate-shimmer: shimmer 7s ease-in-out infinite;

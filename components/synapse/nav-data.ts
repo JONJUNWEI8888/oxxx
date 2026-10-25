@@ -65,7 +65,7 @@ export const NAV_GROUPS: NavGroup[] = [
         title: { zh: '现货&杠杆', en: 'Spot & Margin' },
         description: { zh: '轻松交易加密货币', en: 'Trade crypto with ease' },
         icon: Scale,
-        href: '#',
+        href: '/trade/BTCUSDT',
       },
       {
         id: 'futures',

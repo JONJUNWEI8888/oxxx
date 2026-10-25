@@ -16,7 +16,7 @@ const STORAGE_KEY = 'oxxx-lang'
 
 const I18nContext = createContext<I18nValue | null>(null)
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
+export function I18nProvider({ children, title }: { children: React.ReactNode; title?: Bi }) {
   const [lang, setLangState] = useState<Lang>('zh-CN')
 
   useEffect(() => {
@@ -26,8 +26,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
-    document.title = lang === 'en' ? 'oxxx.io — The Next Unicorn Exchange' : 'oxxx.io — 下一个独角兽交易所'
-  }, [lang])
+    if (title) document.title = lang === 'en' ? title.en : title.zh
+    else document.title = lang === 'en' ? 'oxxx.io — The Next Unicorn Exchange' : 'oxxx.io — 下一个独角兽交易所'
+  }, [lang, title?.zh, title?.en])
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next)
