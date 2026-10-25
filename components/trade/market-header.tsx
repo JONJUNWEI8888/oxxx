@@ -20,6 +20,21 @@ export function CoinBadge({ base, className = 'size-7' }: { base: string; classN
       </svg>
     )
   }
+  if (base === 'ETH') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 64 64" className={cn('shrink-0', className)}>
+        <circle cx="32" cy="32" r="32" className="fill-eth" />
+        <g className="fill-white">
+          <path fillOpacity="0.6" d="M32.996 8v17.74l14.995 6.7z" />
+          <path d="M32.996 8 18 32.44l14.996-6.7z" />
+          <path fillOpacity="0.6" d="M32.996 43.937v12.054L48 35.234z" />
+          <path d="M32.996 55.991V43.935L18 35.234z" />
+          <path fillOpacity="0.2" d="m32.996 41.147 14.995-8.707-14.995-6.696z" />
+          <path fillOpacity="0.6" d="m18 32.44 14.996 8.707V25.744z" />
+        </g>
+      </svg>
+    )
+  }
   return (
     <span aria-hidden="true" className={cn('flex shrink-0 items-center justify-center rounded-full bg-gold/15 font-sans text-xs font-bold text-gold ring-1 ring-gold/40', className)}>
       {base.charAt(0)}
