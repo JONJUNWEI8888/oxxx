@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { animate, motion, useInView, useReducedMotion } from 'framer-motion'
+import { type Bi, useI18n } from '@/lib/i18n'
 import { BgVideo } from './bg-video'
 import { OxEmblem } from './ox-emblem'
 
@@ -9,23 +10,23 @@ const VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_092455_089c54f8-3b03-4966-9df1-e9746063d0ef.mp4'
 
 type Spec = {
-  label: string
-  value?: string
+  label: Bi
+  value?: Bi
   count?: number
   unit?: string
-  note?: string
+  note?: Bi
 }
 
 const TOKEN_SPECS: Spec[] = [
-  { label: '代币名称／符号', value: 'OX', note: '公牛生态权益代币' },
-  { label: '发行平台', value: 'oxxx.io 公牛交易所' },
-  { label: '总供应量', count: 200_000_000, unit: 'OX', note: '总量恒定' },
-  { label: '增发机制', value: '零增发设计', note: '拟不设置任何额外增发' },
-  { label: '首轮发行量', count: 21_000_000, unit: 'OX', note: '约占总供应量 10%' },
-  { label: '首轮参考价格', value: '1 USDT／OX' },
-  { label: '首轮募资上限', count: 2_100_000, unit: 'USDT' },
-  { label: '完全稀释估值 FDV', count: 200_000_000, unit: 'USDT', note: '按首轮参考价格测算' },
-  { label: '认购资产', value: 'USDT', note: '拟基于 BNB Smart Chain（BSC）' },
+  { label: { zh: '代币名称／符号', en: 'Token Name / Symbol' }, value: { zh: 'OX', en: 'OX' }, note: { zh: '公牛生态权益代币', en: 'Bull ecosystem utility token' } },
+  { label: { zh: '发行平台', en: 'Issuing Platform' }, value: { zh: 'oxxx.io 公牛交易所', en: 'oxxx.io Bull Exchange' } },
+  { label: { zh: '总供应量', en: 'Total Supply' }, count: 200_000_000, unit: 'OX', note: { zh: '总量恒定', en: 'Fixed supply' } },
+  { label: { zh: '增发机制', en: 'Inflation' }, value: { zh: '零增发设计', en: 'Zero-inflation design' }, note: { zh: '拟不设置任何额外增发', en: 'No additional issuance planned' } },
+  { label: { zh: '首轮发行量', en: 'First-Round Allocation' }, count: 21_000_000, unit: 'OX', note: { zh: '约占总供应量 10%', en: '≈10% of total supply' } },
+  { label: { zh: '首轮参考价格', en: 'First-Round Price' }, value: { zh: '1 USDT／OX', en: '1 USDT / OX' } },
+  { label: { zh: '首轮募资上限', en: 'First-Round Hard Cap' }, count: 2_100_000, unit: 'USDT' },
+  { label: { zh: '完全稀释估值 FDV', en: 'Fully Diluted Valuation (FDV)' }, count: 200_000_000, unit: 'USDT', note: { zh: '按首轮参考价格测算', en: 'Based on first-round price' } },
+  { label: { zh: '认购资产', en: 'Accepted Asset' }, value: { zh: 'USDT', en: 'USDT' }, note: { zh: '拟基于 BNB Smart Chain（BSC）', en: 'Planned on BNB Smart Chain (BSC)' } },
 ]
 
 const FIRST_ROUND_SHARE = 10.5
@@ -56,6 +57,7 @@ function CountUp({ to, unit }: { to: number; unit?: string }) {
 
 export function Cinematic() {
   const reduceMotion = useReducedMotion()
+  const { t } = useI18n()
 
   return (
     <section
@@ -89,7 +91,7 @@ export function Cinematic() {
             className="flex flex-col gap-4"
           >
             <span className="text-[13px] uppercase tracking-[0.3em] text-gold sm:text-[14px]">
-              Token · 代币经济
+              {t('Token · 代币经济', 'Tokenomics')}
             </span>
             <div className="flex items-center gap-4 sm:gap-6">
               <OxEmblem className="size-20 shrink-0 sm:size-28" />
@@ -98,7 +100,10 @@ export function Cinematic() {
               </h2>
             </div>
             <p className="max-w-md text-pretty text-[15px] leading-relaxed text-foreground/80 sm:text-[16px]">
-              公牛交易所生态的价值载体。总量恒定、拟零增发，让每一枚 OX 都与平台共同成长。
+              {t(
+                '公牛交易所生态的价值载体。总量恒定、拟零增发，让每一枚 OX 都与平台共同成长。',
+                'The value carrier of the Bull Exchange ecosystem. With a fixed supply and zero planned inflation, every OX grows alongside the platform.',
+              )}
             </p>
           </motion.div>
 
@@ -110,13 +115,13 @@ export function Cinematic() {
             className="flex w-full flex-col gap-3 md:max-w-xs"
           >
             <div className="flex items-baseline justify-between text-[14px]">
-              <span className="text-gold-light/70">首轮发行占比</span>
+              <span className="text-gold-light/70">{t('首轮发行占比', 'First-Round Share')}</span>
               <span className="font-mono text-gold">≈ 10%</span>
             </div>
             <div
               className="relative h-2 overflow-hidden rounded-full bg-gold-light/10"
               role="img"
-              aria-label="首轮发行约占总供应量 10%"
+              aria-label={t('首轮发行约占总供应量 10%', 'First round is about 10% of total supply')}
             >
               <motion.div
                 className="absolute inset-y-0 left-0 rounded-full bg-gold shadow-[0_0_16px_var(--color-gold)]"
@@ -136,7 +141,7 @@ export function Cinematic() {
         <dl className="grid grid-cols-1 border-t border-gold/30 md:grid-cols-3">
           {TOKEN_SPECS.map((spec, i) => (
             <motion.div
-              key={spec.label}
+              key={spec.label.en}
               initial={{ opacity: 0, y: 24, filter: 'blur(6px)' }}
               whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               viewport={{ once: true, amount: 0.3 }}
@@ -147,19 +152,19 @@ export function Cinematic() {
                 aria-hidden="true"
                 className="absolute bottom-[-1px] left-0 h-px w-0 bg-gold transition-all duration-500 group-hover:w-full"
               />
-              <dt className="text-[14px] tracking-wide text-gold-light/60">{spec.label}</dt>
+              <dt className="text-[14px] tracking-wide text-gold-light/60">{t(spec.label)}</dt>
               <dd className="flex flex-col gap-1">
                 <span className="text-[22px] font-light leading-snug tracking-[-0.01em] text-foreground transition-colors group-hover:text-gold-light sm:text-[26px]">
-                  {spec.count !== undefined ? <CountUp to={spec.count} unit={spec.unit} /> : spec.value}
+                  {spec.count !== undefined ? <CountUp to={spec.count} unit={spec.unit} /> : spec.value && t(spec.value)}
                 </span>
-                {spec.note && <span className="text-[14px] text-gold">{spec.note}</span>}
+                {spec.note && <span className="text-[14px] text-gold">{t(spec.note)}</span>}
               </dd>
             </motion.div>
           ))}
         </dl>
 
         <p className="text-[12px] leading-relaxed text-gold-light/40">
-          {'* 以上参数为拟定方案，最终以正式发行公告为准。'}
+          {t('* 以上参数为拟定方案，最终以正式发行公告为准。', '* The parameters above are proposed and subject to the official issuance announcement.')}
         </p>
       </div>
     </section>

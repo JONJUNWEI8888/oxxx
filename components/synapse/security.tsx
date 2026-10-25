@@ -2,39 +2,53 @@
 
 import { motion } from 'framer-motion'
 import { Bitcoin, Cpu, DollarSign, Landmark, type LucideIcon } from 'lucide-react'
+import { type Bi, useI18n } from '@/lib/i18n'
 import { SynapseXLogo } from './logo'
 
 const SHIELD_PATH = 'M100 8 L184 38 L184 104 C184 158 148 196 100 214 C52 196 16 158 16 104 L16 38 Z'
 const SHIELD_INNER = 'M100 26 L168 50 L168 104 C168 148 140 180 100 196 C60 180 32 148 32 104 L32 50 Z'
 
-type Tile = { icon: LucideIcon; label: string; size: string; delay: number; dim?: boolean }
+type Tile = { icon: LucideIcon; label: Bi; size: string; delay: number; dim?: boolean }
 
 const LEFT_TILES: Tile[] = [
-  { icon: Bitcoin, label: '比特币', size: 'size-16 md:size-20', delay: 0, dim: true },
-  { icon: Cpu, label: '科技股代币', size: 'size-20 md:size-24', delay: 0.6 },
+  { icon: Bitcoin, label: { zh: '比特币', en: 'Bitcoin' }, size: 'size-16 md:size-20', delay: 0, dim: true },
+  { icon: Cpu, label: { zh: '科技股代币', en: 'Tech Stock Tokens' }, size: 'size-20 md:size-24', delay: 0.6 },
 ]
 
 const RIGHT_TILES: Tile[] = [
-  { icon: DollarSign, label: '稳定币', size: 'size-20 md:size-24', delay: 0.3 },
-  { icon: Landmark, label: '美股资产', size: 'size-16 md:size-20', delay: 0.9, dim: true },
+  { icon: DollarSign, label: { zh: '稳定币', en: 'Stablecoins' }, size: 'size-20 md:size-24', delay: 0.3 },
+  { icon: Landmark, label: { zh: '美股资产', en: 'US Equities' }, size: 'size-16 md:size-20', delay: 0.9, dim: true },
 ]
 
 const FEATURES = [
   {
-    title: '资产隔离托管',
-    body: '用户资产与平台运营资金分账管理、独立托管，每一笔资金流向均可追溯，杜绝挪用风险。',
+    id: 'custody',
+    title: { zh: '资产隔离托管', en: 'Segregated Custody' },
+    body: {
+      zh: '用户资产与平台运营资金分账管理、独立托管，每一笔资金流向均可追溯，杜绝挪用风险。',
+      en: 'User assets are held separately from operating funds in independent custody, with every flow traceable to eliminate misuse.',
+    },
   },
   {
-    title: '冷热钱包分层',
-    body: '绝大部分数字资产存放于离线冷钱包，结合多重签名与硬件密钥授权，层层守护链上资产。',
+    id: 'wallets',
+    title: { zh: '冷热钱包分层', en: 'Tiered Hot & Cold Wallets' },
+    body: {
+      zh: '绝大部分数字资产存放于离线冷钱包，结合多重签名与硬件密钥授权，层层守护链上资产。',
+      en: 'The vast majority of digital assets sit in offline cold wallets, protected by multi-signature and hardware-key authorization.',
+    },
   },
   {
-    title: '全天候风控引擎',
-    body: '7x24 小时实时监测交易与账户行为，异常操作秒级识别并自动拦截，第一时间保护账户安全。',
+    id: 'risk',
+    title: { zh: '全天候风控引擎', en: '24/7 Risk Engine' },
+    body: {
+      zh: '7x24 小时实时监测交易与账户行为，异常操作秒级识别并自动拦截，第一时间保护账户安全。',
+      en: 'Real-time 24/7 monitoring of trades and account activity detects and blocks anomalies within seconds to keep accounts safe.',
+    },
   },
 ]
 
 function FloatingTile({ tile }: { tile: Tile }) {
+  const { t } = useI18n()
   const Icon = tile.icon
   return (
     <motion.div
@@ -45,7 +59,7 @@ function FloatingTile({ tile }: { tile: Tile }) {
       }`}
     >
       <Icon className="size-1/2 text-gold-light" strokeWidth={1.6} aria-hidden="true" />
-      <span className="sr-only">{tile.label}</span>
+      <span className="sr-only">{t(tile.label)}</span>
     </motion.div>
   )
 }
@@ -118,6 +132,7 @@ function AnimatedShield() {
 }
 
 export function Security() {
+  const { t } = useI18n()
   return (
     <section
       id="security"
@@ -135,23 +150,26 @@ export function Security() {
           id="security-heading"
           className="text-gold-gradient text-balance text-[clamp(26px,4vw,48px)] font-bold leading-tight"
         >
-          机构级资产安全，全方位隐私守护
+          {t('机构级资产安全，全方位隐私守护', 'Institutional-Grade Security, Complete Privacy Protection')}
         </h2>
         <p className="text-pretty text-[15px] leading-relaxed text-foreground/60 sm:text-[17px]">
-          oxxx.io 构建多层风控与托管体系，并以端到端加密保护用户数据，让每一笔交易都安心可依。
+          {t(
+            'oxxx.io 构建多层风控与托管体系，并以端到端加密保护用户数据，让每一笔交易都安心可依。',
+            'oxxx.io combines multi-layer risk controls and custody with end-to-end encryption of user data, so every trade is one you can rely on.',
+          )}
         </p>
       </motion.div>
 
       <div className="mt-16 flex w-full max-w-5xl items-center justify-center gap-4 sm:gap-8 md:gap-12">
         <div className="hidden items-center gap-6 sm:flex md:gap-10">
           {LEFT_TILES.map((tile) => (
-            <FloatingTile key={tile.label} tile={tile} />
+            <FloatingTile key={tile.label.en} tile={tile} />
           ))}
         </div>
         <AnimatedShield />
         <div className="hidden items-center gap-6 sm:flex md:gap-10">
           {RIGHT_TILES.map((tile) => (
-            <FloatingTile key={tile.label} tile={tile} />
+            <FloatingTile key={tile.label.en} tile={tile} />
           ))}
         </div>
       </div>
@@ -159,7 +177,7 @@ export function Security() {
       <ul className="mt-16 grid w-full max-w-5xl grid-cols-1 gap-10 md:grid-cols-3 md:gap-0">
         {FEATURES.map((feature, i) => (
           <motion.li
-            key={feature.title}
+            key={feature.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.5 }}
@@ -168,8 +186,8 @@ export function Security() {
               i > 0 ? 'md:border-l md:border-gold/15' : ''
             }`}
           >
-            <h3 className="text-[20px] font-bold text-foreground sm:text-[22px]">{feature.title}</h3>
-            <p className="text-pretty text-[14px] leading-relaxed text-foreground/55 sm:text-[15px]">{feature.body}</p>
+            <h3 className="text-[20px] font-bold text-foreground sm:text-[22px]">{t(feature.title)}</h3>
+            <p className="text-pretty text-[14px] leading-relaxed text-foreground/55 sm:text-[15px]">{t(feature.body)}</p>
           </motion.li>
         ))}
       </ul>

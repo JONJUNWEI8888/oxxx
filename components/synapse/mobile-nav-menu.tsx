@@ -3,10 +3,12 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
+import { useI18n } from '@/lib/i18n'
 import { NAV_GROUPS } from './nav-data'
 import { NavItemRow } from './nav-menu'
 
 export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState<string | null>(null)
 
   return (
@@ -30,7 +32,7 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
                       onClick={onClose}
                       className="flex h-12 items-center rounded-xl px-3 text-[15px] text-white/90 hover:bg-white/[0.06]"
                     >
-                      {group.label}
+                      {t(group.label)}
                     </a>
                   </li>
                 )
@@ -46,7 +48,7 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
                       isOpen ? 'text-gold' : 'text-white/90'
                     }`}
                   >
-                    {group.label}
+                    {t(group.label)}
                     <ChevronDown
                       className={`size-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                       aria-hidden="true"
@@ -63,7 +65,7 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
                       >
                         <div className="flex flex-col pb-2">
                           {group.items.map((item) => (
-                            <NavItemRow key={item.title} item={item} onSelect={onClose} />
+                            <NavItemRow key={item.id} item={item} onSelect={onClose} />
                           ))}
                         </div>
                       </motion.div>
@@ -78,13 +80,13 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
               href="#"
               className="flex h-11 flex-1 items-center justify-center rounded-full border border-gold/60 text-[14px] text-gold"
             >
-              VIP礼遇通道
+              {t('VIP礼遇通道', 'VIP Access')}
             </a>
             <a
               href="#"
               className="flex h-11 flex-1 items-center justify-center rounded-full bg-white/10 text-[14px] text-white"
             >
-              注册
+              {t('注册', 'Sign Up')}
             </a>
           </div>
         </motion.div>

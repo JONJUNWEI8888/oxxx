@@ -1,3 +1,7 @@
+'use client'
+
+import { useI18n } from '@/lib/i18n'
+
 type Partner = {
   name: string
   icon?: { src: string; className: string }
@@ -67,6 +71,7 @@ function PartnerLogo({ partner }: { partner: Partner }) {
 }
 
 export function TickerTape() {
+  const { t } = useI18n()
   const loop = [...PARTNERS, ...PARTNERS]
 
   return (
@@ -75,7 +80,7 @@ export function TickerTape() {
         id="partners-title"
         className="text-balance text-center font-sans text-3xl font-bold text-foreground md:text-5xl"
       >
-        全球生态伙伴
+        {t('全球生态伙伴', 'Global Ecosystem Partners')}
       </h2>
 
       <ul className="sr-only">

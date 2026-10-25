@@ -3,9 +3,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '@/lib/i18n'
 import { NAV_GROUPS, type NavItem } from './nav-data'
 
 export function NavItemRow({ item, onSelect }: { item: NavItem; onSelect?: () => void }) {
+  const { t } = useI18n()
   const Icon = item.icon
   return (
     <a
@@ -18,15 +20,16 @@ export function NavItemRow({ item, onSelect }: { item: NavItem; onSelect?: () =>
       </span>
       <span className="flex min-w-0 flex-col gap-1">
         <span className="text-[15px] font-medium text-white transition-colors group-hover:text-gold-light">
-          {item.title}
+          {t(item.title)}
         </span>
-        <span className="text-pretty text-[13px] leading-relaxed text-white/50">{item.description}</span>
+        <span className="text-pretty text-[13px] leading-relaxed text-white/50">{t(item.description)}</span>
       </span>
     </a>
   )
 }
 
 export function DesktopNavMenu() {
+  const { t } = useI18n()
   const [openKey, setOpenKey] = useState<string | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rootRef = useRef<HTMLUListElement>(null)
@@ -72,7 +75,7 @@ export function DesktopNavMenu() {
                 onMouseEnter={() => setOpenKey(null)}
                 className="flex h-9 items-center rounded-[10px] px-3 text-[15px] text-white/85 transition-colors hover:bg-white/10 hover:text-white"
               >
-                {group.label}
+                {t(group.label)}
               </a>
             </li>
           )
@@ -89,7 +92,7 @@ export function DesktopNavMenu() {
                 isOpen ? 'bg-white/10 text-gold' : 'text-white/85 hover:bg-white/10 hover:text-white'
               }`}
             >
-              {group.label}
+              {t(group.label)}
               <ChevronDown
                 className={`size-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                 aria-hidden="true"
@@ -112,7 +115,7 @@ export function DesktopNavMenu() {
                     />
                     <div className="flex flex-col">
                       {group.items.map((item) => (
-                        <NavItemRow key={item.title} item={item} onSelect={() => setOpenKey(null)} />
+                        <NavItemRow key={t(item.title)} item={item} onSelect={() => setOpenKey(null)} />
                       ))}
                     </div>
                   </div>

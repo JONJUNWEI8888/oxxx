@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useI18n } from '@/lib/i18n'
 import { BgVideo } from './bg-video'
 import { PresaleQr } from './presale-qr'
 import { PresaleTracker } from './presale-tracker'
@@ -10,6 +11,7 @@ const VIDEO =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_095750_32a52ce0-2005-45c9-9093-41f03fde9530.mp4'
 
 export function Technology() {
+  const { t } = useI18n()
   return (
     <section
       id="presale"
@@ -31,7 +33,7 @@ export function Technology() {
         >
           <span className="text-[13px] uppercase tracking-[0.3em] text-gold">Private Round</span>
           <h2 className="text-gold-gradient animate-shimmer text-[clamp(36px,7vw,64px)] font-light leading-[0.95] tracking-[-0.03em]">
-            OX 首轮私募
+            {t('OX 首轮私募', 'OX Seed Private Sale')}
           </h2>
         </motion.div>
 

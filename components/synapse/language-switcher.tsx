@@ -3,17 +3,17 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Globe } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { type Lang, useI18n } from '@/lib/i18n'
 
 const LANGUAGES = [
   { code: 'zh-CN', label: '简体中文' },
   { code: 'en', label: 'English' },
 ] as const
 
-type LanguageCode = (typeof LANGUAGES)[number]['code']
 
 export function LanguageSwitcher() {
   const [open, setOpen] = useState(false)
-  const [current, setCurrent] = useState<LanguageCode>('zh-CN')
+  const { lang: current, setLang, t } = useI18n()
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -36,9 +36,8 @@ export function LanguageSwitcher() {
     }
   }, [open])
 
-  const select = (code: LanguageCode) => {
-    setCurrent(code)
-    document.documentElement.lang = code
+  const select = (code: Lang) => {
+    setLang(code)
     setOpen(false)
     buttonRef.current?.focus()
   }
@@ -48,7 +47,7 @@ export function LanguageSwitcher() {
       <button
         ref={buttonRef}
         type="button"
-        aria-label="切换语言"
+        aria-label={t('切换语言', 'Change language')}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls="language-menu"
@@ -72,7 +71,7 @@ export function LanguageSwitcher() {
             <ul
               id="language-menu"
               role="menu"
-              aria-label="选择语言"
+              aria-label={t('选择语言', 'Select language')}
               className="relative flex w-[200px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-gold-deep/90 p-2 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl"
             >
               <span

@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLiveTickers } from '@/hooks/use-live-tickers'
 import { MARKET_CATEGORIES, QUOTE, formatPrice, type Ticker } from '@/lib/markets'
+import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 function CoinIcon({ base }: { base: string }) {
@@ -32,6 +33,7 @@ function CoinIcon({ base }: { base: string }) {
 
 function PriceCard({ base, ticker }: { base: string; ticker?: Ticker }) {
   const prevPrice = useRef<number | undefined>(undefined)
+  const { t } = useI18n()
   const [flash, setFlash] = useState<'up' | 'down' | null>(null)
 
   useEffect(() => {
@@ -55,7 +57,7 @@ function PriceCard({ base, ticker }: { base: string; ticker?: Ticker }) {
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-[16px] font-bold text-foreground">{base}</h3>
-            <span className="rounded border border-gold/30 bg-gold/10 px-1.5 text-[11px] text-gold-light">币</span>
+            <span className="rounded border border-gold/30 bg-gold/10 px-1.5 text-[11px] text-gold-light">{t('币', 'Coin')}</span>
           </div>
           <p className="text-[12px] text-foreground/40">
             {base}/{QUOTE}
@@ -116,6 +118,7 @@ function MarqueeRow({
 
 export function LiveMarkets() {
   const tickers = useLiveTickers()
+  const { t, isEn } = useI18n()
   const [activeId, setActiveId] = useState(MARKET_CATEGORIES[0].id)
   const active = MARKET_CATEGORIES.find((c) => c.id === activeId) ?? MARKET_CATEGORIES[0]
   const rowTwo = [...active.symbols.slice(4), ...active.symbols.slice(0, 4)]
@@ -135,9 +138,9 @@ export function LiveMarkets() {
           transition={{ duration: 0.7 }}
           className="text-balance font-display text-[32px] leading-tight text-gold-gradient sm:text-[48px]"
         >
-          洞察全市场资产联动信号，捕捉完整跨市场交易机会
+          {t('洞察全市场资产联动信号，捕捉完整跨市场交易机会', 'Read cross-asset signals across every market and capture the full range of trading opportunities')}
         </motion.h2>
-        <div role="tablist" aria-label="市场分类" className="flex flex-wrap justify-center gap-3">
+        <div role="tablist" aria-label={t('市场分类', 'Market categories')} className="flex flex-wrap justify-center gap-3">
           {MARKET_CATEGORIES.map((c) => (
             <button
               key={c.id}
@@ -152,7 +155,7 @@ export function LiveMarkets() {
                   : 'border-gold/15 bg-gold-deep/60 text-foreground/60 hover:border-gold/40 hover:text-foreground',
               )}
             >
-              {c.label}
+              {isEn ? c.labelEn : c.label}
             </button>
           ))}
         </div>
@@ -161,7 +164,7 @@ export function LiveMarkets() {
       <motion.div
         key={active.id}
         role="tabpanel"
-        aria-label={active.label}
+        aria-label={isEn ? active.labelEn : active.label}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
@@ -176,7 +179,7 @@ export function LiveMarkets() {
           href="#presale"
           className="flex items-center gap-3 rounded-xl bg-gold px-8 py-3.5 text-[15px] font-bold text-black transition-colors hover:bg-gold-light"
         >
-          了解更多
+          {t('了解更多', 'Learn More')}
           <ArrowRight className="size-4" aria-hidden="true" />
         </a>
       </div>

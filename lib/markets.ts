@@ -1,6 +1,7 @@
 export type MarketCategory = {
   id: string
   label: string
+  labelEn: string
   symbols: string[]
 }
 
@@ -8,26 +9,31 @@ export const MARKET_CATEGORIES: MarketCategory[] = [
   {
     id: 'btc',
     label: 'BTC 生态',
+    labelEn: 'BTC Ecosystem',
     symbols: ['BTC', 'WBTC', 'ORDI', 'STX', '1000SATS', 'BCH', 'LTC', 'RUNE', 'PAXG'],
   },
   {
     id: 'ai',
     label: 'AI 科技',
+    labelEn: 'AI & Tech',
     symbols: ['FET', 'RENDER', 'TAO', 'WLD', 'ARKM', 'NEAR', 'VIRTUAL', 'ICP', 'GRT'],
   },
   {
     id: 'bluechip',
     label: '加密蓝筹',
+    labelEn: 'Crypto Blue Chips',
     symbols: ['BTC', 'ETH', 'BNB', 'XRP', 'SOL', 'DOGE', 'ADA', 'TRX', 'LINK'],
   },
   {
     id: 'mining',
     label: '挖矿与算力',
+    labelEn: 'Mining & Hashpower',
     symbols: ['BTC', 'LTC', 'BCH', 'ETC', 'DASH', 'ZEC', 'FIL', 'AR', 'RVN'],
   },
   {
     id: 'l1',
     label: '公链生态',
+    labelEn: 'Layer 1 Ecosystem',
     symbols: ['ETH', 'SOL', 'AVAX', 'DOT', 'SUI', 'APT', 'TON', 'SEI', 'TIA'],
   },
 ]

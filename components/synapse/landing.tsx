@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { I18nProvider } from '@/lib/i18n'
 import { AssetAnalysis } from './asset-analysis'
 import { Footer } from './footer'
 import { Hero } from './hero'
@@ -22,6 +23,7 @@ export function Landing() {
   }, [])
 
   return (
+    <I18nProvider>
     <div
       className="bg-black text-white"
       style={{
@@ -43,5 +45,6 @@ export function Landing() {
       </main>
       <Footer />
     </div>
+    </I18nProvider>
   )
 }

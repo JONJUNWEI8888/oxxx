@@ -3,15 +3,17 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
+import { type Bi, useI18n } from '@/lib/i18n'
 
 type Market = 'crypto' | 'stocks'
 
-const MARKETS: Record<Market, { label: string; hint: string; href: string }> = {
-  crypto: { label: '加密', hint: 'BTC · ETH · USDT 现货与合约', href: '#platform' },
-  stocks: { label: '股票', hint: 'NVDA · TSLA · AAPL 美股代币', href: '#platform' },
+const MARKETS: Record<Market, { label: Bi; hint: Bi; href: string }> = {
+  crypto: { label: { zh: '加密', en: 'Crypto' }, hint: { zh: 'BTC · ETH · USDT 现货与合约', en: 'BTC · ETH · USDT spot & futures' }, href: '#platform' },
+  stocks: { label: { zh: '股票', en: 'Stocks' }, hint: { zh: 'NVDA · TSLA · AAPL 美股代币', en: 'NVDA · TSLA · AAPL tokenized stocks' }, href: '#platform' },
 }
 
 export function MarketSwitch() {
+  const { t } = useI18n()
   const [market, setMarket] = useState<Market>('crypto')
   const isStocks = market === 'stocks'
   const toggle = () => setMarket(isStocks ? 'crypto' : 'stocks')
@@ -24,14 +26,14 @@ export function MarketSwitch() {
           onClick={() => setMarket('crypto')}
           className={`text-base font-medium transition-colors ${isStocks ? 'text-white/45 hover:text-white/70' : 'text-gold'}`}
         >
-          {MARKETS.crypto.label}
+          {t(MARKETS.crypto.label)}
         </button>
 
         <button
           type="button"
           role="switch"
           aria-checked={isStocks}
-          aria-label="切换加密与股票市场"
+          aria-label={t('切换加密与股票市场', 'Switch between crypto and stock markets')}
           onClick={toggle}
           className="relative flex h-10 w-16 items-center rounded-xl border-[5px] border-gold bg-black p-1 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-gold-light focus-visible:ring-offset-2 focus-visible:ring-offset-black [box-shadow:0_0_18px_-4px_var(--color-gold)]"
         >
@@ -48,7 +50,7 @@ export function MarketSwitch() {
           onClick={() => setMarket('stocks')}
           className={`text-base font-medium transition-colors ${isStocks ? 'text-gold' : 'text-white/45 hover:text-white/70'}`}
         >
-          {MARKETS.stocks.label}
+          {t(MARKETS.stocks.label)}
         </button>
       </div>
 
@@ -62,7 +64,7 @@ export function MarketSwitch() {
             transition={{ duration: 0.25 }}
             className="font-mono text-xs tracking-wide text-white/60"
           >
-            {MARKETS[market].hint}
+            {t(MARKETS[market].hint)}
           </motion.p>
         </AnimatePresence>
       </div>
@@ -71,7 +73,7 @@ export function MarketSwitch() {
         href={MARKETS[market].href}
         className="group flex h-12 items-center justify-center gap-2 rounded-xl bg-gold text-base font-semibold text-gold-deep outline-none transition-all hover:bg-gold-light focus-visible:ring-2 focus-visible:ring-gold-light focus-visible:ring-offset-2 focus-visible:ring-offset-black [box-shadow:0_8px_30px_-8px_var(--color-gold)]"
       >
-        立即体验
+        {t('立即体验', 'Try It Now')}
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
       </a>
     </div>

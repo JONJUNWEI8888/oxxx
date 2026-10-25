@@ -4,14 +4,15 @@ import Image from 'next/image'
 import { MotionConfig, motion, useReducedMotion, useTime, useTransform } from 'framer-motion'
 import { Landmark } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { type Bi, useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { SynapseXLogo } from './logo'
 
 const BRANDS = {
-  nvda: { src: '/logos/nvidia.svg', label: 'NVIDIA 代币' },
+  nvda: { src: '/logos/nvidia.svg', label: 'NVIDIA Token' },
   usdt: { src: '/logos/tether.svg', label: 'USDT' },
   btc: { src: '/logos/bitcoin.svg', label: 'BTC' },
-  tsla: { src: '/logos/tesla.svg', label: 'Tesla 代币' },
+  tsla: { src: '/logos/tesla.svg', label: 'Tesla Token' },
 } as const
 
 type Brand = keyof typeof BRANDS
@@ -264,25 +265,29 @@ function LiquidityArt() {
   )
 }
 
-const CARDS: { title: string; body: string; art: ReactNode }[] = [
+const CARDS: { id: string; title: Bi; body: Bi; art: ReactNode }[] = [
   {
-    title: '多层级子账户与精细化权限管控',
-    body: '主账户统一管理资金，子账户按团队与策略分配额度和权限。',
+    id: 'accounts',
+    title: { zh: '多层级子账户与精细化权限管控', en: 'Multi-Tier Sub-Accounts with Granular Permissions' },
+    body: { zh: '主账户统一管理资金，子账户按团队与策略分配额度和权限。', en: 'Manage funds centrally while sub-accounts get limits and permissions by team and strategy.' },
     art: <AccountsArt />,
   },
   {
-    title: '低延迟 API 与毫秒级撮合执行',
-    body: 'REST 与 WebSocket 双通道接入，加密与美股代币一套接口直连。',
+    id: 'api',
+    title: { zh: '低延迟 API 与毫秒级撮合执行', en: 'Low-Latency API with Millisecond Execution' },
+    body: { zh: 'REST 与 WebSocket 双通道接入，加密与美股代币一套接口直连。', en: 'REST and WebSocket access, one interface for both crypto and tokenized US stocks.' },
     art: <ApiArt />,
   },
   {
-    title: '聚合深度流动性与大宗 OTC 服务',
-    body: '多源深度汇聚，大额订单专属通道，降低冲击成本。',
+    id: 'liquidity',
+    title: { zh: '聚合深度流动性与大宗 OTC 服务', en: 'Aggregated Deep Liquidity & Block OTC' },
+    body: { zh: '多源深度汇聚，大额订单专属通道，降低冲击成本。', en: 'Multi-source depth and dedicated channels for large orders to reduce market impact.' },
     art: <LiquidityArt />,
   },
 ]
 
 export function Institutional() {
+  const { t } = useI18n()
   return (
     <MotionConfig reducedMotion="user">
       <section
@@ -298,13 +303,13 @@ export function Institutional() {
           transition={{ duration: 0.9 }}
           className="text-gold-gradient max-w-4xl text-balance text-center text-[clamp(26px,4vw,48px)] font-bold leading-tight"
         >
-          为机构与专业交易者，打造高性能交易引擎
+          {t('为机构与专业交易者，打造高性能交易引擎', 'A High-Performance Trading Engine for Institutions and Professional Traders')}
         </motion.h2>
 
         <ul className="mt-14 grid w-full max-w-6xl grid-cols-1 gap-6 md:grid-cols-3">
           {CARDS.map((card, i) => (
             <motion.li
-              key={card.title}
+              key={card.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
@@ -313,8 +318,8 @@ export function Institutional() {
               className="group flex min-h-[27rem] flex-col justify-between gap-6 overflow-hidden rounded-3xl border border-gold/10 bg-white/[0.04] p-7 transition-colors hover:border-gold/35"
             >
               <div className="flex flex-col gap-3">
-                <h3 className="text-pretty text-[20px] font-bold leading-snug text-foreground">{card.title}</h3>
-                <p className="text-pretty text-[14px] leading-relaxed text-foreground/50">{card.body}</p>
+                <h3 className="text-pretty text-[20px] font-bold leading-snug text-foreground">{t(card.title)}</h3>
+                <p className="text-pretty text-[14px] leading-relaxed text-foreground/50">{t(card.body)}</p>
               </div>
               <div className="flex justify-center">{card.art}</div>
             </motion.li>

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
+import { useI18n } from '@/lib/i18n'
 import { HeroHeadline } from './hero-headline'
 import { MarketSwitch } from './market-switch'
 import { VisorLaser } from './visor-laser'
@@ -71,6 +72,7 @@ function useMouseScrub() {
 
 export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
   const videoRef = useMouseScrub()
+  const { t } = useI18n()
 
   return (
     <section className="relative h-screen h-[100dvh] w-full overflow-hidden bg-black">
@@ -138,8 +140,10 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
               transition={{ duration: 0.9, ease: [0.215, 0.61, 0.355, 1], delay: 0.2 }}
               className="max-w-[17rem] text-sm leading-relaxed text-white/90 antialiased md:max-w-[14rem] md:text-[15px] lg:max-w-xs"
             >
-              公牛代表力量，也代表坚定向前的姿态。对 OXXX
-              而言，我们的目标是定义为下一代交易所UEX，迈向全景加密交易的新里程碑。
+              {t(
+                '公牛代表力量，也代表坚定向前的姿态。对 OXXX 而言，我们的目标是定义为下一代交易所UEX，迈向全景加密交易的新里程碑。',
+                'The bull stands for strength and unwavering forward momentum. For OXXX, our goal is to define the next-generation exchange, UEX, and reach a new milestone in all-in-one crypto trading.',
+              )}
             </motion.p>
           </div>
         </div>

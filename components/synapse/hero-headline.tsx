@@ -1,19 +1,25 @@
 'use client'
 
 import { motion, useReducedMotion } from 'framer-motion'
+import { useI18n } from '@/lib/i18n'
 
 const EASE = [0.215, 0.61, 0.355, 1] as const
 const CHAR_STAGGER = 0.07
 
 type Line = { text: string; delay: number; accent?: boolean }
 
-const LINES: Line[] = [
+const LINES_ZH: Line[] = [
   { text: '下一个', delay: 0.15 },
   { text: '独角兽交易所', delay: 0.45, accent: true },
 ]
 
+const LINES_EN: Line[] = [
+  { text: 'The Next', delay: 0.15 },
+  { text: 'Unicorn Exchange', delay: 0.45, accent: true },
+]
+
 function AnimatedLine({ line, play, reduce }: { line: Line; play: boolean; reduce: boolean }) {
-  const chars = Array.from(line.text)
+  const chars = Array.from(line.text).map((c) => (c === ' ' ? '\u00A0' : c))
   const settleDelay = line.delay + chars.length * CHAR_STAGGER + 0.5
 
   return (
@@ -65,10 +71,12 @@ function AnimatedLine({ line, play, reduce }: { line: Line; play: boolean; reduc
 
 export function HeroHeadline({ className, play }: { className: string; play: boolean }) {
   const reduce = useReducedMotion() ?? false
+  const { isEn } = useI18n()
+  const LINES = isEn ? LINES_EN : LINES_ZH
 
   return (
     <h1 className={className}>
-      <span className="sr-only">{LINES.map((l) => l.text).join('')}</span>
+      <span className="sr-only">{LINES.map((l) => l.text).join(isEn ? ' ' : '')}</span>
       <span aria-hidden="true" className="flex flex-col">
         {LINES.map((line) => (
           <AnimatedLine key={line.text} line={line} play={play} reduce={reduce} />

@@ -3,12 +3,14 @@
 import Image from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
 
 const EDGE_FADE =
   'linear-gradient(to right, transparent 0%, #000 22%, #000 82%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 18%, #000 78%, transparent 100%)'
 
 export function Architecture() {
   const reduceMotion = useReducedMotion()
+  const { t } = useI18n()
   return (
     <section
       id="platform"
@@ -23,13 +25,15 @@ export function Architecture() {
           className="relative z-10 flex w-full flex-col gap-8 md:w-[42%] md:shrink-0"
         >
           <h2 className="text-gold-gradient text-balance text-[clamp(28px,4.2vw,52px)] font-bold leading-[1.3] tracking-[-0.01em]">
-            专业交易平台：
+            {t('专业交易平台：', 'A Professional Trading Platform:')}
             <br />
-            美股代币化、加密现货与合约一站交易
+            {t('美股代币化、加密现货与合约一站交易', 'Tokenized US Stocks, Crypto Spot & Futures in One Place')}
           </h2>
           <p className="text-pretty text-[15px] leading-relaxed text-foreground/60 sm:text-[16px]">
-            oxxx.io 以 UEX 全景交易为核心，将美股代币化资产与主流加密货币汇聚于同一账户。平台提供高速撮合引擎、多种订单类型与全天候交易时段，并开放
-            App 与 API 接入，满足从入门交易到专业量化策略的全部需求。
+            {t(
+              'oxxx.io 以 UEX 全景交易为核心，将美股代币化资产与主流加密货币汇聚于同一账户。平台提供高速撮合引擎、多种订单类型与全天候交易时段，并开放 App 与 API 接入，满足从入门交易到专业量化策略的全部需求。',
+              'Built around UEX all-in-one trading, oxxx.io brings tokenized US stocks and major cryptocurrencies into a single account. A high-speed matching engine, multiple order types, round-the-clock sessions, plus App and API access cover everything from first trades to professional quant strategies.',
+            )}
           </p>
           <a
             href="#presale"
@@ -38,7 +42,7 @@ export function Architecture() {
             <span className="flex size-10 items-center justify-center rounded-lg border border-gold/50 transition-colors group-hover:border-gold group-hover:bg-gold/10">
               <ArrowRight className="size-4" aria-hidden="true" />
             </span>
-            立即体验
+            {t('立即体验', 'Try It Now')}
           </a>
         </motion.div>
 
@@ -63,7 +67,7 @@ export function Architecture() {
           >
             <Image
               src="/images/chrome-bull-charge.png"
-              alt="镜面铬金属机甲公牛正面冲向镜头，粉色霓虹双眼，蹄下踏碎地面，比特币、以太坊、USDT、BNB、Solana 等加密货币四散飞溅"
+              alt={t('镜面铬金属机甲公牛正面冲向镜头，粉色霓虹双眼，蹄下踏碎地面，比特币、以太坊、USDT、BNB、Solana 等加密货币四散飞溅', 'A mirror-chrome mech bull charging toward the camera with pink neon eyes, shattering the ground as Bitcoin, Ethereum, USDT, BNB and Solana coins scatter')}
               width={1408}
               height={768}
               priority

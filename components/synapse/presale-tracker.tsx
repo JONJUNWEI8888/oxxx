@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import useSWR from 'swr'
+import { useI18n } from '@/lib/i18n'
 import { PRESALE } from '@/lib/presale'
 
 type PresaleData = { raised: number; updatedAt: number }
@@ -37,6 +38,7 @@ function buildPath(points: Point[]) {
 const usd = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 })
 
 export function PresaleTracker() {
+  const { t } = useI18n()
   const history = useRef<Point[]>([])
   const { data, error, isLoading } = useSWR('/api/presale', fetcher, {
     refreshInterval: 15000,
@@ -60,7 +62,7 @@ export function PresaleTracker() {
             className={`size-2 rounded-full ${error ? 'bg-white/30' : 'animate-pulse bg-gold'}`}
             aria-hidden="true"
           />
-          {error ? '链上数据暂不可用' : '链上实时募资'}
+          {error ? t('链上数据暂不可用', 'On-chain data unavailable') : t('链上实时募资', 'Live On-Chain Raise')}
         </div>
         <p className="text-[clamp(40px,8vw,80px)] font-light leading-none tracking-[-0.04em] text-white">
           {isLoading ? '—' : usd(raised)}
@@ -75,7 +77,7 @@ export function PresaleTracker() {
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(pct)}
-          aria-label="私募进度"
+          aria-label={t('私募进度', 'Presale progress')}
         >
           <div
             className="h-full rounded-full bg-gradient-to-r from-gold to-gold-light transition-[width] duration-1000"
@@ -84,7 +86,7 @@ export function PresaleTracker() {
         </div>
         <div className="flex justify-between text-[13px] text-white/40 sm:text-[14px]">
           <span>{pct.toFixed(2)}%</span>
-          <span>私募目标 {usd(PRESALE.hardCapUsdt)} USDT</span>
+          <span>{t('私募目标', 'Target')} {usd(PRESALE.hardCapUsdt)} USDT</span>
         </div>
       </div>
 
@@ -94,7 +96,7 @@ export function PresaleTracker() {
           preserveAspectRatio="none"
           className="h-32 w-full sm:h-40"
           role="img"
-          aria-label={`私募金额实时走势，当前 ${usd(raised)} USDT`}
+          aria-label={t(`私募金额实时走势，当前 ${usd(raised)} USDT`, `Live presale raise trend, currently ${usd(raised)} USDT`)}
         >
           <defs>
             <linearGradient id="presale-fill" x1="0" y1="0" x2="0" y2="1">
@@ -125,7 +127,7 @@ export function PresaleTracker() {
             />
           </g>
         </svg>
-        <figcaption className="text-[13px] text-white/40">每 15 秒同步 BSC 链上地址余额</figcaption>
+        <figcaption className="text-[13px] text-white/40">{t('每 15 秒同步 BSC 链上地址余额', 'Synced with the BSC address balance every 15 seconds')}</figcaption>
       </figure>
     </div>
   )

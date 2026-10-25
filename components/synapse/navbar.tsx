@@ -3,12 +3,14 @@
 import { motion } from 'framer-motion'
 import { Crown, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useI18n } from '@/lib/i18n'
 import { LanguageSwitcher } from './language-switcher'
 import { MobileNavMenu } from './mobile-nav-menu'
 import { DesktopNavMenu } from './nav-menu'
 import { SquashHamburger } from './squash-hamburger'
 
 function LogoPill() {
+  const { t } = useI18n()
   return (
     <motion.a
       href="#"
@@ -16,7 +18,7 @@ function LogoPill() {
         e.preventDefault()
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }}
-      aria-label="OXXX 返回顶部"
+      aria-label={t('OXXX 返回顶部', 'OXXX, back to top')}
       whileHover={{ scale: 1.04 }}
       whileTap={{ scale: 0.97 }}
   className="flex h-10 shrink-0 items-center bg-transparent md:h-12"
@@ -43,6 +45,7 @@ function IconButton({ label, children }: { label: string; children: React.ReactN
 }
 
 export function Navbar({ visible }: { visible: boolean }) {
+  const { t } = useI18n()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -67,7 +70,7 @@ export function Navbar({ visible }: { visible: boolean }) {
           </div>
           <button
             type="button"
-            aria-label={mobileOpen ? '关闭菜单' : '打开菜单'}
+            aria-label={mobileOpen ? t('关闭菜单', 'Close menu') : t('打开菜单', 'Open menu')}
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav-panel"
             onClick={() => setMobileOpen((v) => !v)}
@@ -83,13 +86,13 @@ export function Navbar({ visible }: { visible: boolean }) {
             className="hidden h-12 items-center gap-2 rounded-full border border-gold/60 px-5 text-[15px] text-gold transition-all hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_24px_-6px_var(--color-gold)] xl:flex"
           >
             <Crown className="size-4" aria-hidden="true" />
-            VIP礼遇通道
+            {t('VIP礼遇通道', 'VIP Access')}
           </a>
           <a
             href="#"
             className="hidden h-12 items-center rounded-full bg-white/15 px-5 text-[15px] text-white backdrop-blur-md transition-colors hover:bg-white/25 md:flex"
           >
-            注册
+            {t('注册', 'Sign Up')}
           </a>
           <motion.a
             href="#"
@@ -97,10 +100,10 @@ export function Navbar({ visible }: { visible: boolean }) {
             whileTap={{ scale: 0.97 }}
             className="flex h-10 items-center rounded-full bg-white px-5 text-[14px] font-medium text-black md:h-12 md:px-6 md:text-[15px]"
           >
-            登录
+            {t('登录', 'Log In')}
           </motion.a>
           <div className="hidden items-center gap-1 border-l border-white/15 pl-2 lg:flex">
-            <IconButton label="下载 App">
+            <IconButton label={t('下载 App', 'Download App')}>
               <Download className="size-5" aria-hidden="true" />
             </IconButton>
             <LanguageSwitcher />

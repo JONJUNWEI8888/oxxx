@@ -2,9 +2,11 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
+import { useI18n } from '@/lib/i18n'
 import { PRESALE } from '@/lib/presale'
 
 export function PresaleQr() {
+  const { t } = useI18n()
   const [copied, setCopied] = useState(false)
   const [amount, setAmount] = useState('1000')
 
@@ -25,15 +27,15 @@ export function PresaleQr() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <p className="text-[13px] uppercase tracking-[0.2em] text-gold">唯一指定私募地址</p>
+          <p className="text-[13px] uppercase tracking-[0.2em] text-gold">{t('唯一指定私募地址', 'Official Presale Address')}</p>
           <p className="text-pretty text-[14px] leading-relaxed text-white/60">
-            仅支持 BSC 链 USDT (BEP-20)，请勿转入其他链或其他币种。
+            {t('仅支持 BSC 链 USDT (BEP-20)，请勿转入其他链或其他币种。', 'Only USDT on BSC (BEP-20) is supported. Do not send from other chains or other tokens.')}
           </p>
         </div>
         <div className="self-start overflow-hidden rounded-lg bg-white p-2 ring-1 ring-gold ring-offset-4 ring-offset-gold-deep">
           <Image
             src="/images/usdt-qr.jpg"
-            alt="OX 私募 USDT (BSC) 收款二维码"
+            alt={t('OX 私募 USDT (BSC) 收款二维码', 'OX presale USDT (BSC) payment QR code')}
             width={160}
             height={160}
             className="size-36 sm:size-40"
@@ -50,16 +52,16 @@ export function PresaleQr() {
           onClick={copy}
           className="self-start rounded-full border border-gold bg-gold px-5 py-2 text-[14px] text-black transition-colors hover:bg-gold-light"
         >
-          {copied ? '已复制' : '复制地址'}
+          {copied ? t('已复制', 'Copied') : t('复制地址', 'Copy Address')}
         </button>
         <span className="sr-only" aria-live="polite">
-          {copied ? '地址已复制' : ''}
+          {copied ? t('地址已复制', 'Address copied') : ''}
         </span>
       </div>
 
       <div className="flex flex-col gap-3 border-t border-gold/20 pt-6">
         <label htmlFor="usdt-amount" className="text-[13px] uppercase tracking-[0.2em] text-gold">
-          认购计算
+          {t('认购计算', 'Purchase Calculator')}
         </label>
         <div className="flex items-center gap-3">
           <input
