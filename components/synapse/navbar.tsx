@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion'
 import { Crown, Download, Globe } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { SynapseXLogo } from './logo'
 import { MobileNavMenu } from './mobile-nav-menu'
 import { DesktopNavMenu } from './nav-menu'
 import { SquashHamburger } from './squash-hamburger'
@@ -16,12 +15,17 @@ function LogoPill() {
         e.preventDefault()
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }}
-      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.22)' }}
-      whileTap={{ scale: 0.98 }}
-      className="flex h-10 shrink-0 items-center gap-2 rounded-[12px] bg-white/15 px-3.5 backdrop-blur-md md:h-12 md:gap-2.5 md:rounded-[14px] md:px-5"
+      aria-label="OXXX 返回顶部"
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+      className="flex h-10 shrink-0 items-center md:h-12"
     >
-      <SynapseXLogo className="size-[15px] text-white md:size-[18px]" />
-      <span className="text-[14px] font-medium tracking-tight text-white md:text-[16px]">oxxx.io</span>
+      <span
+        aria-hidden="true"
+        className="logo-wordmark font-display text-[30px] leading-none tracking-[0.04em] md:text-[38px]"
+      >
+        OXXX
+      </span>
     </motion.a>
   )
 }
