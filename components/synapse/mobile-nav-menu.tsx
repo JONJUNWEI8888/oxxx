@@ -28,8 +28,9 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
                 return (
                   <li key={group.key}>
                     <a
-                      href={group.href}
-                      onClick={onClose}
+                href={group.href}
+                {...(group.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                onClick={onClose}
                       className="flex h-12 items-center rounded-xl px-3 text-[15px] text-white/90 hover:bg-white/[0.06]"
                     >
                       {t(group.label)}

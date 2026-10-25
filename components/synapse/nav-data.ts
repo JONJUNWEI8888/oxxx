@@ -31,11 +31,15 @@ export type NavGroup = {
   key: string
   label: Bi
   href?: string
+  external?: boolean
   items?: NavItem[]
 }
 
+export const WORLD_MONITOR_URL =
+  'https://www.worldmonitor.app/dashboard?zoom=1.00&view=global&timeRange=7d&layers=iranAttacks%2Chotspots%2Cconflicts%2Cbases%2Cnuclear%2Cmilitary%2Cweather%2CcanadaAlerts%2Coutages%2Cnatural%2Cwaterways%2Ceconomic%2Csanctions'
+
 export const NAV_GROUPS: NavGroup[] = [
-  { key: 'market', label: { zh: '市场', en: 'Markets' }, href: '#' },
+  { key: 'market', label: { zh: '市场', en: 'Markets' }, href: WORLD_MONITOR_URL, external: true },
   {
     key: 'securities',
     label: { zh: '证券', en: 'Securities' },

@@ -72,6 +72,7 @@ export function DesktopNavMenu() {
             <li key={group.key}>
               <a
                 href={group.href}
+                {...(group.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 onMouseEnter={() => setOpenKey(null)}
                 className="flex h-9 items-center rounded-[10px] px-3 text-[15px] text-white/85 transition-colors hover:bg-white/10 hover:text-white"
               >
