@@ -9,6 +9,7 @@ import { I18nProvider, useI18n } from '@/lib/i18n'
 import { INTERVALS, type Interval, MARKETS, MARKET_LIST, type Market, type MarketSymbol, formatNumber, formatSigned } from '@/lib/markets'
 import { cn } from '@/lib/utils'
 import { AccountPanel, PositionsPanel } from './account-panels'
+import { InstrumentInfo } from './instrument-info'
 import { MarketHeader } from './market-header'
 import { OrderBook } from './order-book'
 import { OrderForm } from './order-form'
@@ -39,16 +40,6 @@ function TradeNav() {
 function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: Market; snapshot: MarketSnapshot; interval: Interval; onIntervalChange: (v: Interval) => void }) {
   const { t } = useI18n()
   const [tab, setTab] = useState<'chart' | 'info'>('chart')
-  const info = [
-    [t('合约', 'Contract'), `${market.symbol} ${t('永续', 'Perpetual')}`],
-    [t('标的资产', 'Underlying'), `${t(market.name)} (${market.base})`],
-    [t('结算资产', 'Settlement'), market.quote],
-    [t('指数价格', 'Index price'), formatNumber(snapshot.mark?.indexPrice, market.priceDp)],
-    [t('标记价格', 'Mark price'), formatNumber(snapshot.mark?.markPrice, market.priceDp)],
-    [t('当前资金费率', 'Funding rate'), snapshot.mark ? formatSigned(snapshot.mark.fundingRate * 100, 4, '%') : '--'],
-    [t('资金费率周期', 'Funding interval'), t('8 小时', '8 hours')],
-    [t('行情来源', 'Data feed'), 'Binance USDⓈ-M · WebSocket'],
-  ]
 
   return (
     <section aria-label={t('K线图', 'Price chart')} className="flex h-[460px] min-w-0 flex-col rounded-lg bg-panel lg:h-full">
@@ -98,16 +89,7 @@ function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: 
       <div className={cn('min-h-0 flex-1', tab !== 'chart' && 'hidden')}>
         <PriceChart market={market} interval={interval} liveCandle={snapshot.candle} />
       </div>
-      {tab === 'info' && (
-        <dl className="grid flex-1 content-start gap-x-8 gap-y-4 p-5 text-sm sm:grid-cols-2">
-          {info.map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between gap-4 border-b border-line pb-3">
-              <dt className="text-white/50">{label}</dt>
-              <dd className="text-right tabular-nums text-white/90">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      {tab === 'info' && <InstrumentInfo market={market} />}
     </section>
   )
 }

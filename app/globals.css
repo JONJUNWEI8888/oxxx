@@ -15,6 +15,7 @@
   --color-down: #f6465d;
   --color-panel: #0d0b0c;
   --color-line: #231d21;
+  --color-raised: #211c20;
 
   --animate-marquee: marquee 45s linear infinite;
   --animate-shimmer: shimmer 7s ease-in-out infinite;

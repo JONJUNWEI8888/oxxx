@@ -8,10 +8,10 @@ import { useI18n } from '@/lib/i18n'
 import { MARKET_LIST, type Market, formatCompact, formatNumber, formatSigned } from '@/lib/markets'
 import { cn } from '@/lib/utils'
 
-function CoinBadge({ base }: { base: string }) {
+export function CoinBadge({ base, className = 'size-7' }: { base: string; className?: string }) {
   if (base === 'BTC') {
     return (
-      <svg aria-hidden="true" viewBox="0 0 64 64" className="size-7 shrink-0">
+      <svg aria-hidden="true" viewBox="0 0 64 64" className={cn('shrink-0', className)}>
         <circle cx="32" cy="32" r="32" className="fill-btc" />
         <path
           className="fill-white"
@@ -21,7 +21,7 @@ function CoinBadge({ base }: { base: string }) {
     )
   }
   return (
-    <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-full bg-gold/15 font-sans text-xs font-bold text-gold ring-1 ring-gold/40">
+    <span aria-hidden="true" className={cn('flex shrink-0 items-center justify-center rounded-full bg-gold/15 font-sans text-xs font-bold text-gold ring-1 ring-gold/40', className)}>
       {base.charAt(0)}
     </span>
   )
