@@ -18,15 +18,14 @@ function LogoPill() {
       aria-label="OXXX 返回顶部"
       whileHover={{ scale: 1.04 }}
       whileTap={{ scale: 0.97 }}
-      className="flex h-10 shrink-0 items-center md:h-12"
-    >
-      <span
-        aria-hidden="true"
-        className="logo-wordmark font-display text-[30px] leading-none tracking-[0.04em] md:text-[38px]"
-      >
-        OXXX
-      </span>
-    </motion.a>
+  className="flex h-10 shrink-0 items-center bg-transparent md:h-12"
+  >
+  <span aria-hidden="true" className="logo-glow inline-flex">
+  <span className="logo-wordmark font-display text-[30px] leading-none tracking-[0.04em] md:text-[38px]">
+  OXXX
+  </span>
+  </span>
+  </motion.a>
   )
 }
 

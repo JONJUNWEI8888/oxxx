@@ -48,10 +48,15 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 10px color-mix(in oklab, var(--color-gold) 55%, transparent))
-    drop-shadow(0 0 2px color-mix(in oklab, var(--color-gold-light) 70%, transparent));
   animation: logo-sheen 6s ease-in-out infinite;
-}
+  }
+
+  /* Glow lives on the parent: Safari renders filter + background-clip:text on the same element as a solid box. */
+  .logo-glow {
+  background: none;
+  filter: drop-shadow(0 0 10px color-mix(in oklab, var(--color-gold) 55%, transparent))
+  drop-shadow(0 0 2px color-mix(in oklab, var(--color-gold-light) 70%, transparent));
+  }
 
 @keyframes logo-sheen {
   0%,
