@@ -95,7 +95,7 @@ export function Navbar({ visible }: { visible: boolean }) {
             {t('注册', 'Sign Up')}
           </a>
           <motion.a
-            href="#"
+            href="/login"
             whileHover={{ scale: 1.03, backgroundColor: '#e2e2e6' }}
             whileTap={{ scale: 0.97 }}
             className="flex h-10 items-center rounded-full bg-white px-5 text-[14px] font-medium text-black md:h-12 md:px-6 md:text-[15px]"
