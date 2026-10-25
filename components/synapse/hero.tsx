@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useEffect, useRef } from 'react'
-import { ScrambleIn } from './scramble'
+import { HeroHeadline } from './hero-headline'
 import { MarketSwitch } from './market-switch'
 
 const HERO_VIDEO = '/videos/hero.mp4'
@@ -128,11 +128,7 @@ export function Hero({ entranceComplete }: { entranceComplete: boolean }) {
 
   <div className="relative flex flex-col gap-6 pt-6 sm:pt-8 md:pt-10">
   <div className="flex max-w-md flex-col gap-4 [text-shadow:0_2px_16px_rgba(0,0,0,0.85),0_0_2px_rgba(0,0,0,0.6)]">
-            <h1 className={headingClass}>
-              <ScrambleIn text="下一个" delay={200} triggered={entranceComplete} />
-              <br />
-              <ScrambleIn text="独角兽交易所" delay={500} triggered={entranceComplete} />
-            </h1>
+            <HeroHeadline className={headingClass} play={entranceComplete} />
             <motion.p
               initial={{ opacity: 0, y: 25 }}
               animate={entranceComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: 25 }}
