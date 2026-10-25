@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Crown, Download, Globe } from 'lucide-react'
+import { Crown, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { LanguageSwitcher } from './language-switcher'
 import { MobileNavMenu } from './mobile-nav-menu'
 import { DesktopNavMenu } from './nav-menu'
 import { SquashHamburger } from './squash-hamburger'
@@ -102,9 +103,7 @@ export function Navbar({ visible }: { visible: boolean }) {
             <IconButton label="下载 App">
               <Download className="size-5" aria-hidden="true" />
             </IconButton>
-            <IconButton label="切换语言">
-              <Globe className="size-5" aria-hidden="true" />
-            </IconButton>
+            <LanguageSwitcher />
           </div>
         </div>
 
