@@ -16,7 +16,7 @@ import { OrderForm } from './order-form'
 import { PriceChart } from './price-chart'
 import { TradingViewChart } from './tradingview-chart'
 
-export function TradeNav() {
+function TradeNav() {
   const { t } = useI18n()
   return (
     <header className="relative z-50 flex h-14 items-center justify-between gap-4 border-b border-line px-4">
