@@ -1,73 +1,52 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
-import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Crown, Download, Globe } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { SynapseXLogo } from './logo'
-import { ScrambleText } from './scramble'
+import { MobileNavMenu } from './mobile-nav-menu'
+import { DesktopNavMenu } from './nav-menu'
 import { SquashHamburger } from './squash-hamburger'
 
-const pillSpring = { type: 'spring' as const, stiffness: 350, damping: 28 }
-
-const LINKS = [
-  { label: 'About', multiplier: 1 },
-  { label: 'Metrics', multiplier: 2 },
-]
-
-function scrollToScreen(multiplier: number) {
-  window.scrollTo({ top: window.innerHeight * multiplier, behavior: 'smooth' })
-}
-
-function NavLink({
-  label,
-  onClick,
-  mobile,
-}: {
-  label: string
-  onClick: () => void
-  mobile?: boolean
-}) {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={`whitespace-nowrap font-normal text-white/85 transition-colors hover:text-white ${
-        mobile ? 'text-[13px]' : 'text-[16px]'
-      }`}
-    >
-      <ScrambleText text={label} isHovered={hovered} />
-    </button>
-  )
-}
-
-function DownloadButton({ mobile }: { mobile?: boolean }) {
-  const [hovered, setHovered] = useState(false)
+function LogoPill() {
   return (
     <motion.a
       href="#"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      whileHover={{ scale: 1.03, backgroundColor: '#e2e2e6' }}
-      whileTap={{ scale: 0.97 }}
-      className={`flex shrink-0 items-center gap-2 rounded-full bg-white font-medium text-black ${
-        mobile ? 'h-9 px-3.5 text-[13px]' : 'h-12 px-6 text-[16px]'
-      }`}
+      onClick={(e) => {
+        e.preventDefault()
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }}
+      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.22)' }}
+      whileTap={{ scale: 0.98 }}
+      className="flex h-10 shrink-0 items-center gap-2 rounded-[12px] bg-white/15 px-3.5 backdrop-blur-md md:h-12 md:gap-2.5 md:rounded-[14px] md:px-5"
     >
-      <i className="bi bi-apple" aria-hidden="true" />
-      <ScrambleText text="Download" isHovered={hovered} />
+      <SynapseXLogo className="size-[15px] text-white md:size-[18px]" />
+      <span className="text-[14px] font-medium tracking-tight text-white md:text-[16px]">oxxx.io</span>
     </motion.a>
   )
 }
 
-export function Navbar({ visible }: { visible: boolean }) {
-  const [open, setOpen] = useState(false)
+function IconButton({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href="#"
+      aria-label={label}
+      className="flex size-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+    >
+      {children}
+    </a>
+  )
+}
 
-  const handleLink = (multiplier: number) => {
-    scrollToScreen(multiplier)
-    setOpen(false)
-  }
+export function Navbar({ visible }: { visible: boolean }) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMobileOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
 
   return (
     <motion.header
@@ -76,133 +55,57 @@ export function Navbar({ visible }: { visible: boolean }) {
       transition={{ duration: 0.8 }}
       className="fixed inset-x-0 top-0 z-50 h-20 w-full bg-transparent"
     >
-      {/* Desktop */}
-      <nav
-        aria-label="Primary"
-        className="hidden h-full items-center justify-between px-4 sm:flex sm:px-6 md:px-8"
-      >
-        <div className="flex items-center gap-2">
-          <motion.a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              window.scrollTo({ top: 0, behavior: 'smooth' })
-            }}
-            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.22)' }}
-            whileTap={{ scale: 0.98 }}
-            className={`${open ? 'hidden md:flex' : 'flex'} h-12 items-center gap-2.5 rounded-[14px] bg-white/15 px-5 backdrop-blur-md`}
+      <nav aria-label="Primary" className="relative flex h-full items-center justify-between gap-3 px-4 sm:px-6 md:px-8">
+        <div className="flex min-w-0 items-center gap-2">
+          <LogoPill />
+          <div className="hidden md:block">
+            <DesktopNavMenu />
+          </div>
+          <button
+            type="button"
+            aria-label={mobileOpen ? '关闭菜单' : '打开菜单'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav-panel"
+            onClick={() => setMobileOpen((v) => !v)}
+            className="flex size-10 items-center justify-center rounded-[12px] bg-white/15 text-white backdrop-blur-md md:hidden"
           >
-            <SynapseXLogo className="size-[18px] text-white" />
-            <span className="text-[16px] font-medium tracking-tight text-white">oxxx.io</span>
-          </motion.a>
-
-          <motion.div
-            initial={false}
-            animate={{ width: open ? 290 : 48 }}
-            transition={pillSpring}
-            className="flex h-12 items-center overflow-hidden rounded-[14px] bg-white/15 backdrop-blur-md"
-          >
-            <button
-              type="button"
-              aria-label={open ? 'Close menu' : 'Open menu'}
-              aria-expanded={open}
-              onClick={() => setOpen((v) => !v)}
-              className={`flex shrink-0 items-center justify-center text-white transition-all ${
-                open
-                  ? 'ml-1.5 size-9 rounded-[11px] bg-white/10 hover:bg-white/20'
-                  : 'size-12 rounded-[14px]'
-              }`}
-            >
-              <SquashHamburger open={open} />
-            </button>
-            <AnimatePresence>
-              {open && (
-                <motion.div
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 15 }}
-                  transition={{ duration: 0.25, delay: 0.08 }}
-                  className="flex items-center gap-6 pl-6"
-                >
-                  {LINKS.map((link) => (
-                    <NavLink
-                      key={link.label}
-                      label={link.label}
-                      onClick={() => handleLink(link.multiplier)}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            <SquashHamburger open={mobileOpen} mobile />
+          </button>
         </div>
 
-        <DownloadButton />
-      </nav>
-
-      {/* Mobile */}
-      <nav aria-label="Primary mobile" className="flex h-full items-center gap-2 px-4 sm:hidden">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href="#"
+            className="hidden h-12 items-center gap-2 rounded-full border border-gold/60 px-5 text-[15px] text-gold transition-all hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_24px_-6px_var(--color-gold)] xl:flex"
+          >
+            <Crown className="size-4" aria-hidden="true" />
+            VIP礼遇通道
+          </a>
+          <a
+            href="#"
+            className="hidden h-12 items-center rounded-full bg-white/15 px-5 text-[15px] text-white backdrop-blur-md transition-colors hover:bg-white/25 md:flex"
+          >
+            注册
+          </a>
           <motion.a
             href="#"
-            onClick={(e) => {
-              e.preventDefault()
-              window.scrollTo({ top: 0, behavior: 'smooth' })
-            }}
-            initial={false}
-            animate={{ width: open ? 0 : 'auto', opacity: open ? 0 : 1 }}
-            transition={pillSpring}
-            aria-hidden={open}
-            tabIndex={open ? -1 : 0}
-            className="flex h-9 shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap rounded-[10px] bg-white/15 backdrop-blur-md"
+            whileHover={{ scale: 1.03, backgroundColor: '#e2e2e6' }}
+            whileTap={{ scale: 0.97 }}
+            className="flex h-10 items-center rounded-full bg-white px-5 text-[14px] font-medium text-black md:h-12 md:px-6 md:text-[15px]"
           >
-            <span className="flex items-center gap-2 px-3.5">
-              <SynapseXLogo className="size-[14px] text-white" />
-              <span className="text-[13px] font-medium tracking-tight text-white">oxxx.io</span>
-            </span>
+            登录
           </motion.a>
-
-          <motion.div
-            initial={false}
-            animate={{ width: open ? '100%' : 36 }}
-            transition={pillSpring}
-            className="flex h-9 items-center overflow-hidden rounded-[10px] bg-white/15 backdrop-blur-md"
-          >
-            <button
-              type="button"
-              aria-label={open ? 'Close menu' : 'Open menu'}
-              aria-expanded={open}
-              onClick={() => setOpen((v) => !v)}
-              className={`flex shrink-0 items-center justify-center text-white transition-all ${
-                open ? 'ml-1 size-7 rounded-[8px] bg-white/10' : 'size-9 rounded-[10px]'
-              }`}
-            >
-              <SquashHamburger open={open} mobile />
-            </button>
-            <AnimatePresence>
-              {open && (
-                <motion.div
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 15 }}
-                  transition={{ duration: 0.25, delay: 0.08 }}
-                  className="flex items-center gap-4 pl-4"
-                >
-                  {LINKS.map((link) => (
-                    <NavLink
-                      key={link.label}
-                      label={link.label}
-                      mobile
-                      onClick={() => handleLink(link.multiplier)}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+          <div className="hidden items-center gap-1 border-l border-white/15 pl-2 lg:flex">
+            <IconButton label="下载 App">
+              <Download className="size-5" aria-hidden="true" />
+            </IconButton>
+            <IconButton label="切换语言">
+              <Globe className="size-5" aria-hidden="true" />
+            </IconButton>
+          </div>
         </div>
 
-        <DownloadButton mobile />
+        <MobileNavMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
       </nav>
     </motion.header>
   )
