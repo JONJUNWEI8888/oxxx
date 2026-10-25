@@ -14,6 +14,7 @@ import { MarketHeader } from './market-header'
 import { OrderBook } from './order-book'
 import { OrderForm } from './order-form'
 import { PriceChart } from './price-chart'
+import { TradingViewChart } from './tradingview-chart'
 
 function TradeNav() {
   const { t } = useI18n()
@@ -40,6 +41,7 @@ function TradeNav() {
 function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: Market; snapshot: MarketSnapshot; interval: Interval; onIntervalChange: (v: Interval) => void }) {
   const { t } = useI18n()
   const [tab, setTab] = useState<'chart' | 'info'>('chart')
+  const [view, setView] = useState<'tradingview' | 'basic'>('tradingview')
 
   return (
     <section aria-label={t('K线图', 'Price chart')} className="flex h-[460px] min-w-0 flex-col rounded-lg bg-panel lg:h-full">
@@ -66,7 +68,7 @@ function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: 
             </button>
           ))}
         </div>
-        {tab === 'chart' && (
+        {tab === 'chart' && view === 'basic' && (
           <div className="flex items-center gap-1 overflow-x-auto py-2 [scrollbar-width:none]" role="group" aria-label={t('K线周期', 'Interval')}>
             {INTERVALS.map((item) => (
               <button
@@ -84,10 +86,37 @@ function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: 
             ))}
           </div>
         )}
+        {tab === 'chart' && (
+          <div className="ml-auto flex items-center gap-1 py-2" role="group" aria-label={t('图表类型', 'Chart view')}>
+            {(
+              [
+                ['basic', t('基本版', 'Basic')],
+                ['tradingview', 'TradingView'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={view === key}
+                onClick={() => setView(key)}
+                className={cn(
+                  'shrink-0 rounded-md px-2 py-1 text-xs transition-colors',
+                  view === key ? 'bg-white/10 font-bold text-white' : 'text-white/50 hover:text-white',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className={cn('min-h-0 flex-1', tab !== 'chart' && 'hidden')}>
-        <PriceChart market={market} interval={interval} liveCandle={snapshot.candle} />
+        {view === 'tradingview' ? (
+          <TradingViewChart market={market} interval={interval} />
+        ) : (
+          <PriceChart market={market} interval={interval} liveCandle={snapshot.candle} />
+        )}
       </div>
       {tab === 'info' && <InstrumentInfo market={market} />}
     </section>
