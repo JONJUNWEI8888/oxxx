@@ -103,7 +103,7 @@ export const NAV_GROUPS: NavGroup[] = [
           en: 'Automate strategies or follow top traders',
         },
         icon: Bot,
-        href: '#',
+        href: '/trading-bot',
       },
     ],
   },
