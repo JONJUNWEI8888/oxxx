@@ -164,7 +164,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: 'about',
-    label: { zh: '���于我们', en: 'About' },
+    label: { zh: '关于我们', en: 'About' },
     items: [
       {
         id: 'about-oxxx',
