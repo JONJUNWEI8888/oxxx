@@ -1,7 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowRight, Eye, Target } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { LaserEye, LaserTarget } from './laser-icons'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Bi } from '@/lib/i18n'
@@ -151,12 +152,12 @@ export function BrandStory() {
   ]
   const cards = [
     {
-      icon: Eye,
+      icon: LaserEye,
       title: { zh: '愿景', en: 'Vision' },
       body: { zh: '成为连接数字资产与传统金融市场的下一代全球交易基础设施。', en: 'To become the next-generation global trading infrastructure connecting digital assets and traditional markets.' },
     },
     {
-      icon: Target,
+      icon: LaserTarget,
       title: { zh: '使命', en: 'Mission' },
       body: {
         zh: '通过统一市场交易平台连接数字资产与传统金融市场，为专业级投资者提供更高效、更可信赖的跨市场交易与资产配置能力。',
@@ -185,8 +186,9 @@ export function BrandStory() {
               transition={{ ...reveal.transition, delay: i * 0.1 }}
               className="flex gap-6 rounded-2xl bg-raised p-8"
             >
-              <span className="flex size-14 shrink-0 items-center justify-center rounded-full border border-gold/40 text-gold">
-                <Icon className="size-6" aria-hidden="true" />
+              <span className="laser-badge relative flex size-20 shrink-0 items-center justify-center rounded-full text-gold">
+                <span className="laser-badge-orbit pointer-events-none absolute inset-0 rounded-full" aria-hidden="true" />
+                <Icon className="relative size-12" />
               </span>
               <div className="flex flex-col gap-3">
                 <h3 className="font-display text-3xl tracking-wide text-gold">{t(title.zh, title.en)}</h3>
