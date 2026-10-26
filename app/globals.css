@@ -262,7 +262,8 @@ html.lenis body {
 }
 
 .coin-mask {
-  mask-image: radial-gradient(ellipse 52% 62% at 50% 50%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+  filter: drop-shadow(0 28px 36px color-mix(in oklab, var(--color-gold) 22%, transparent));
 }
 
 .coin-scan::before {
