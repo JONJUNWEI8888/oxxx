@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import type { LiveCandle } from '@/hooks/use-okx-market'
 import { useI18n } from '@/lib/i18n'
-import { CHART_COLORS, type Candle, type Interval, type Market, type TradeMode, fetchKlines, formatNumber } from '@/lib/markets'
+import { CHART_COLORS, type Candle, type Interval, type Market, type MarketSymbol, type TradeMode, fetchKlines, formatNumber } from '@/lib/markets'
 
 const MA_PERIODS = [
   { period: 7, color: CHART_COLORS.ma7 },
@@ -56,7 +56,7 @@ export function PriceChart({ market, interval, mode, liveCandle }: { market: Mar
   const hoveringRef = useRef(false)
   const [legend, setLegend] = useState<{ candle: Candle; ma: (number | null)[] } | null>(null)
 
-  const { data: history, error, isLoading } = useSWR(['klines', mode, market.symbol, interval], () => fetchKlines(market.symbol, interval, mode), {
+  const { data: history, error, isLoading } = useSWR(['klines', mode, market.symbol, interval], () => fetchKlines(market.symbol as MarketSymbol, interval, mode), {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   })

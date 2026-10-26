@@ -10,12 +10,12 @@ import {
   INTERVALS,
   type Interval,
   MARKETS,
-  MARKET_LIST,
   type Market,
   type MarketSymbol,
   type TradeMode,
   formatNumber,
   formatSigned,
+  peerMarkets,
   tradeHref,
 } from '@/lib/markets'
 import { cn } from '@/lib/utils'
@@ -64,7 +64,8 @@ function ChartPanel({
 }) {
   const { t } = useI18n()
   const [tab, setTab] = useState<'chart' | 'info'>('chart')
-  const [view, setView] = useState<'tradingview' | 'basic'>('tradingview')
+  // TradingView only has the underlying listing for stocks, so default to OKX's own token candles.
+  const [view, setView] = useState<'tradingview' | 'basic'>(market.kind === 'stock' ? 'basic' : 'tradingview')
 
   return (
     <section aria-label={t('K线图', 'Price chart')} className="flex h-[460px] min-w-0 flex-col rounded-lg bg-panel lg:h-full">
@@ -146,7 +147,7 @@ function ChartPanel({
   )
 }
 
-function StatusBar({ snapshot, mode }: { snapshot: MarketSnapshot; mode: TradeMode }) {
+function StatusBar({ market, snapshot, mode }: { market: Market; snapshot: MarketSnapshot; mode: TradeMode }) {
   const { t } = useI18n()
   const online = snapshot.status === 'open'
   return (
@@ -156,8 +157,8 @@ function StatusBar({ snapshot, mode }: { snapshot: MarketSnapshot; mode: TradeMo
         {online ? t('连接稳定', 'Connected') : snapshot.status === 'reconnecting' ? t('重新连接中', 'Reconnecting') : t('连接中', 'Connecting')}
       </span>
       <span className="shrink-0 text-white/40">{t('行情来源：OKX', 'Data: OKX')}</span>
-      {MARKET_LIST.map((m) => {
-        const tk = snapshot.tickers[m.symbol]
+      {peerMarkets(market).map((m) => {
+        const tk = snapshot.tickers[m.symbol as MarketSymbol]
         return (
           <Link key={m.symbol} href={tradeHref(mode, m.symbol)} className="flex shrink-0 gap-2 tabular-nums hover:text-white">
             <span className="text-white/80">
@@ -204,17 +205,19 @@ function Terminal({ symbol, mode }: { symbol: MarketSymbol; mode: TradeMode }) {
         </div>
         <AccountPanel />
       </main>
-      <StatusBar snapshot={snapshot} mode={mode} />
+      <StatusBar market={market} snapshot={snapshot} mode={mode} />
     </div>
   )
 }
 
 export function TradeTerminal({ symbol, mode = 'spot' }: { symbol: MarketSymbol; mode?: TradeMode }) {
-  const { base, quote } = MARKETS[symbol]
+  const { base, quote, kind, name } = MARKETS[symbol]
   const title =
     mode === 'swap'
       ? { zh: `${base}/${quote} 永续合约 | OXXX`, en: `${base}/${quote} Perpetual | OXXX` }
-      : { zh: `${base}/${quote} 现货&杠杆交易 | OXXX`, en: `${base}/${quote} Spot & Margin | OXXX` }
+      : kind === 'stock'
+        ? { zh: `${base}/${quote} ${name.zh}代币化股票 | OXXX TradFi`, en: `${base}/${quote} ${name.en} Tokenized Stock | OXXX TradFi` }
+        : { zh: `${base}/${quote} 现货&杠杆交易 | OXXX`, en: `${base}/${quote} Spot & Margin | OXXX` }
   return (
     <I18nProvider title={title}>
       <Terminal symbol={symbol} mode={mode} />

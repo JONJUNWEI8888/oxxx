@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { type Candle, type Interval, MARKETS, MARKET_LIST, type MarketSymbol, OKX_BARS, type TradeMode, okxInstId } from '@/lib/markets'
+import { type Candle, type Interval, MARKETS, type MarketSymbol, OKX_BARS, type TradeMode, okxInstId, peerMarkets } from '@/lib/markets'
 
 const PUBLIC_WS = 'wss://ws.okx.com:8443/ws/v5/public'
 const BUSINESS_WS = 'wss://ws.okx.com:8443/ws/v5/business'
@@ -29,7 +29,7 @@ export type MarketSnapshot = {
   status: ConnectionStatus
   lastPrice: number | null
   direction: 'up' | 'down' | null
-  tickers: Partial<Record<MarketSymbol, Ticker>>
+  tickers: Partial<Record<string, Ticker>>
   mark: MarkInfo | null
   bids: BookLevel[]
   asks: BookLevel[]
@@ -118,8 +118,6 @@ function topLevels(side: BookSide, descending: boolean): BookLevel[] {
     .slice(0, BOOK_DEPTH)
 }
 
-const symbolByInstId = (mode: TradeMode) => new Map(MARKET_LIST.map((m) => [okxInstId(m, mode), m.symbol as MarketSymbol]))
-
 export function useOkxMarket(symbol: MarketSymbol, interval: Interval, mode: TradeMode) {
   const [snapshot, setSnapshot] = useState<MarketSnapshot>(createEmpty)
   const storeRef = useRef<MarketSnapshot>(createEmpty())
@@ -142,12 +140,13 @@ export function useOkxMarket(symbol: MarketSymbol, interval: Interval, mode: Tra
     const market = MARKETS[symbol]
     const instId = okxInstId(market, mode)
     const sizeMultiplier = mode === 'swap' ? market.ctVal : 1
-    const instMap = symbolByInstId(mode)
+    const peers = peerMarkets(market)
+    const instMap = new Map(peers.map((m) => [okxInstId(m, mode), m.symbol as MarketSymbol]))
     const bids: BookSide = new Map()
     const asks: BookSide = new Map()
 
     const args: OkxArg[] = [
-      ...MARKET_LIST.map((m) => ({ channel: 'tickers', instId: okxInstId(m, mode) })),
+      ...peers.map((m) => ({ channel: 'tickers', instId: okxInstId(m, mode) })),
       { channel: 'trades', instId },
       { channel: 'books', instId },
     ]

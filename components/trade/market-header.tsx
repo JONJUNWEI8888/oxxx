@@ -5,10 +5,19 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { MarketSnapshot } from '@/hooks/use-okx-market'
 import { useI18n } from '@/lib/i18n'
-import { MARKET_LIST, type Market, type TradeMode, formatCompact, formatNumber, formatSigned, tradeHref } from '@/lib/markets'
+import { type Market, STOCK_LOGOS, type TradeMode, formatCompact, formatNumber, formatSigned, peerMarkets, tradeHref } from '@/lib/markets'
 import { cn } from '@/lib/utils'
 
 export function CoinBadge({ base, className = 'size-7' }: { base: string; className?: string }) {
+  const logo = STOCK_LOGOS[base]
+  if (logo) {
+    return (
+      <span aria-hidden="true" className={cn('flex shrink-0 items-center justify-center rounded-full bg-raised ring-1 ring-white/15', className)}>
+        {/* Simple Icons ship black glyphs; invert renders them white on the dark badge. */}
+        <img src={logo} alt="" className="size-[55%] invert" />
+      </span>
+    )
+  }
   if (base === 'BTC') {
     return (
       <svg aria-hidden="true" viewBox="0 0 64 64" className={cn('shrink-0', className)}>
@@ -96,7 +105,7 @@ function PairSwitcher({ market, mode, snapshot, leverage }: { market: Market; mo
 
       {open && (
         <ul role="listbox" aria-label={t('选择交易对', 'Select market')} className="absolute left-0 top-full z-40 mt-2 w-72 rounded-xl border border-white/10 bg-panel p-2 shadow-2xl">
-          {MARKET_LIST.map((m) => {
+          {peerMarkets(market).map((m) => {
             const tk = snapshot.tickers[m.symbol]
             return (
               <li key={m.symbol} role="option" aria-selected={m.symbol === market.symbol}>

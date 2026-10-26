@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
-import { CHART_COLORS, type Interval, type Market } from '@/lib/markets'
+import { CHART_COLORS, type Interval, type Market, type TradeMode } from '@/lib/markets'
 
 type TradingViewWidget = { remove?: () => void }
 type TradingViewGlobal = { widget: new (options: Record<string, unknown>) => TradingViewWidget }
@@ -67,12 +67,12 @@ export function TradingViewChart({ market, interval, mode }: { market: Market; i
         widget = new TradingView.widget({
           container_id: containerId,
           autosize: true,
-          symbol: `OKX:${market.symbol}${mode === 'swap' ? '.P' : ''}`,
+          symbol: market.tvSymbol ?? `OKX:${market.symbol}${mode === 'swap' ? '.P' : ''}`,
           interval: TV_INTERVALS[interval],
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           theme: 'dark',
           style: '1',
-          locale: lang === 'zh' ? 'zh_CN' : 'en',
+          locale: lang === 'zh-CN' ? 'zh_CN' : 'en',
           toolbar_bg: PANEL_BG,
           backgroundColor: PANEL_BG,
           gridColor: GRID,

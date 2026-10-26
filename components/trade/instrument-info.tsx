@@ -99,6 +99,105 @@ const PROFILES: Record<string, CoinProfile> = {
   },
 }
 
+const STOCK_HINT = {
+  underlying: { zh: '该代币 1:1 锚定的美股标的', en: 'The US-listed share this token tracks 1:1' },
+  exchange: { zh: '标的股票的主要上市交易所', en: 'Primary listing exchange of the underlying share' },
+  sector: { zh: '标的公司所属行业', en: 'Industry of the underlying company' },
+  founded: { zh: '标的公司成立年份', en: 'Year the company was founded' },
+  hours: { zh: '代币支持 7×24 小时交易，美股休市时价格可能与标的存在偏离', en: 'Tokens trade 24/7; prices may deviate from the underlying while US markets are closed' },
+} satisfies Record<string, Bi>
+
+function stockProfile(o: { ticker: string; exchange: string; sector: Bi; founded: string; intro: Bi; website: string; ir: string; maxMarket: string }): CoinProfile {
+  const base = `X${o.ticker}`
+  return {
+    intro: o.intro,
+    stats: [
+      { label: L('标的股票', 'Underlying'), hint: STOCK_HINT.underlying, value: o.ticker },
+      { label: L('上市交易所', 'Exchange'), hint: STOCK_HINT.exchange, value: o.exchange },
+      { label: L('所属行业', 'Sector'), hint: STOCK_HINT.sector, value: o.sector.zh },
+      { label: L('成立年份', 'Founded'), hint: STOCK_HINT.founded, value: o.founded },
+      { label: L('交易时间', 'Trading hours'), hint: STOCK_HINT.hours, value: '7×24' },
+    ],
+    rules: [
+      { label: L('最小下单数量', 'Min order qty'), hint: HINT.minQty, value: `0.01 ${base}` },
+      { label: L('下单数量精度', 'Qty step'), hint: HINT.qtyStep, value: `0.00001 ${base}` },
+      { label: L('最小价格变动', 'Tick size'), hint: HINT.tick, value: '0.01 USDT' },
+      { label: L('限价单价格上限/下限比例', 'Limit price cap / floor'), hint: HINT.limitBand, value: '2% / 2%' },
+      { label: L('市价单价格上限/下限比例', 'Market price cap / floor'), hint: HINT.marketBand, value: '1% / 1%' },
+      { label: L('限价单/市价单单笔最大金额', 'Max limit / market order value'), hint: HINT.maxNotional, value: `20,000,000 / ${o.maxMarket} USDT` },
+    ],
+    links: { website: o.website, whitepaper: o.ir },
+  }
+}
+
+const STOCK_PROFILES: Record<string, CoinProfile> = {
+  XAAPL: stockProfile({
+    ticker: 'AAPL',
+    exchange: 'NASDAQ',
+    sector: L('消费电子', 'Consumer electronics'),
+    founded: '1976',
+    intro: L(
+      'XAAPL 是锚定苹果公司（Apple Inc.，NASDAQ: AAPL）股价的代币化股票，可直接使用 USDT 进行 7×24 小时交易。苹果公司总部位于美国加州库比蒂诺，主营 iPhone、Mac、iPad、可穿戴设备以及 App Store、iCloud 等服务业务。',
+      'XAAPL is a tokenized stock tracking Apple Inc. (NASDAQ: AAPL), tradable 24/7 with USDT. Headquartered in Cupertino, California, Apple makes the iPhone, Mac, iPad and wearables, and runs services such as the App Store and iCloud.',
+    ),
+    website: 'https://www.apple.com',
+    ir: 'https://investor.apple.com',
+    maxMarket: '110,000',
+  }),
+  XNVDA: stockProfile({
+    ticker: 'NVDA',
+    exchange: 'NASDAQ',
+    sector: L('半导体', 'Semiconductors'),
+    founded: '1993',
+    intro: L(
+      'XNVDA 是锚定英伟达（NVIDIA Corporation，NASDAQ: NVDA）股价的代币化股票，可直接使用 USDT 进行 7×24 小时交易。英伟达是全球领先的 GPU 与 AI 计算平台公司，其数据中心芯片广泛用于大模型训练与推理。',
+      'XNVDA is a tokenized stock tracking NVIDIA Corporation (NASDAQ: NVDA), tradable 24/7 with USDT. NVIDIA is a leading GPU and AI computing company whose data-center chips power large-model training and inference.',
+    ),
+    website: 'https://www.nvidia.com',
+    ir: 'https://investor.nvidia.com',
+    maxMarket: '120,000',
+  }),
+  XGOOGL: stockProfile({
+    ticker: 'GOOGL',
+    exchange: 'NASDAQ',
+    sector: L('互联网与 AI', 'Internet & AI'),
+    founded: '1998',
+    intro: L(
+      'XGOOGL 是锚定谷歌母公司 Alphabet（NASDAQ: GOOGL）A 类股股价的代币化股票，可直接使用 USDT 进行 7×24 小时交易。Alphabet 旗下拥有 Google 搜索、YouTube、Android、Google Cloud 与 Gemini 等业务。',
+      'XGOOGL is a tokenized stock tracking Alphabet Class A shares (NASDAQ: GOOGL), tradable 24/7 with USDT. Alphabet owns Google Search, YouTube, Android, Google Cloud and Gemini.',
+    ),
+    website: 'https://abc.xyz',
+    ir: 'https://abc.xyz/investor',
+    maxMarket: '140,000',
+  }),
+  XTSLA: stockProfile({
+    ticker: 'TSLA',
+    exchange: 'NASDAQ',
+    sector: L('电动汽车与能源', 'EVs & energy'),
+    founded: '2003',
+    intro: L(
+      'XTSLA 是锚定特斯拉（Tesla, Inc.，NASDAQ: TSLA）股价的代币化股票，可直接使用 USDT 进行 7×24 小时交易。特斯拉主营电动汽车、储能系统与太阳能产品，并持续投入自动驾驶与机器人研发。',
+      'XTSLA is a tokenized stock tracking Tesla, Inc. (NASDAQ: TSLA), tradable 24/7 with USDT. Tesla builds electric vehicles, energy storage and solar products, and invests heavily in autonomy and robotics.',
+    ),
+    website: 'https://www.tesla.com',
+    ir: 'https://ir.tesla.com',
+    maxMarket: '130,000',
+  }),
+  XMCD: stockProfile({
+    ticker: 'MCD',
+    exchange: 'NYSE',
+    sector: L('餐饮', 'Restaurants'),
+    founded: '1955',
+    intro: L(
+      'XMCD 是锚定麦当劳（McDonald’s Corporation，NYSE: MCD）股价的代币化股票，可直接使用 USDT 进行 7×24 小时交易。麦当劳是全球最大的快餐连锁品牌之一，在 100 多个国家和地区运营超过 4 万家门店。',
+      'XMCD is a tokenized stock tracking McDonald’s Corporation (NYSE: MCD), tradable 24/7 with USDT. McDonald’s is one of the world’s largest restaurant chains, with over 40,000 locations in more than 100 countries.',
+    ),
+    website: 'https://www.mcdonalds.com',
+    ir: 'https://corporate.mcdonalds.com/corpmcd/investors.html',
+    maxMarket: '1,000,000',
+  }),
+}
+
 const LEVERAGE_TIERS: Record<string, { cap: string; leverage: number; mmr: string }[]> = {
   BTC: [
     { cap: '0 - 300,000', leverage: 125, mmr: '0.40%' },
@@ -172,15 +271,17 @@ function ExternalButton({ href, children }: { href: string; children: React.Reac
 export function InstrumentInfo({ market }: { market: Market }) {
   const { t } = useI18n()
   const [tab, setTab] = useState<SubTab>('coin')
-  const profile = PROFILES[market.base]
+  const isStock = market.kind === 'stock'
+  const profile = isStock ? STOCK_PROFILES[market.base] : PROFILES[market.base]
   const tiers = LEVERAGE_TIERS[market.base] ?? []
+  const subTabs = SUB_TABS.filter((item) => item.key !== 'margin' || tiers.length > 0)
 
   return (
     <TooltipProvider delay={100}>
       <div className="@container flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-3 text-sm [scrollbar-width:thin]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div role="tablist" aria-label={t('基础信息', 'Info')} className="flex gap-1 rounded-lg bg-white/[0.04] p-1">
-            {SUB_TABS.map((item) => (
+            {subTabs.map((item) => (
               <button
                 key={item.key}
                 type="button"
@@ -192,7 +293,7 @@ export function InstrumentInfo({ market }: { market: Market }) {
                   tab === item.key ? 'bg-white/10 font-bold text-white' : 'text-white/60 hover:text-white',
                 )}
               >
-                {t(item.label)}
+                {isStock && item.key === 'coin' ? t('标的信息', 'Asset info') : t(item.label)}
               </button>
             ))}
           </div>
@@ -207,10 +308,15 @@ export function InstrumentInfo({ market }: { market: Market }) {
         {tab === 'coin' && profile && (
           <>
             <p className="rounded-md bg-white/[0.04] px-3 py-2.5 text-xs leading-relaxed text-white/45">
-              {t(
-                '*免责声明：基础数据由 CoinMarketCap (CMC) 提供，仅供参考。信息为“原样”呈现，OXXX 对此信息不构成任何形式的陈述或保证。',
-                '*Disclaimer: Basic data is provided by CoinMarketCap (CMC) for reference only. Information is presented “as is”, and OXXX makes no representation or warranty of any kind regarding it.',
-              )}
+              {isStock
+                ? t(
+                    '*免责声明：代币化股票不代表对标的公司的股权，不附带投票权或分红权，价格仅追踪标的股价。信息仅供参考，OXXX 对此不构成任何形式的陈述或保证。',
+                    '*Disclaimer: Tokenized stocks do not represent equity in the underlying company and carry no voting or dividend rights; prices only track the underlying share. Information is for reference only and OXXX makes no representation or warranty of any kind.',
+                  )
+                : t(
+                    '*免责声明：基础数据由 CoinMarketCap (CMC) 提供，仅供参考。信息为“原样”呈现，OXXX 对此信息不构成任何形式的陈述或保证。',
+                    '*Disclaimer: Basic data is provided by CoinMarketCap (CMC) for reference only. Information is presented “as is”, and OXXX makes no representation or warranty of any kind regarding it.',
+                  )}
             </p>
             <div className="flex flex-col gap-3">
               <h3 className="flex items-center gap-2">
@@ -225,7 +331,7 @@ export function InstrumentInfo({ market }: { market: Market }) {
               <h3 className="text-base font-bold text-white">{t('官方链接', 'Official links')}</h3>
               <div className="flex flex-wrap gap-3">
                 <ExternalButton href={profile.links.website}>{t('官方网址', 'Website')}</ExternalButton>
-                <ExternalButton href={profile.links.whitepaper}>{t('白皮书', 'Whitepaper')}</ExternalButton>
+                <ExternalButton href={profile.links.whitepaper}>{isStock ? t('投资者关系', 'Investor relations') : t('白皮书', 'Whitepaper')}</ExternalButton>
               </div>
             </div>
           </>

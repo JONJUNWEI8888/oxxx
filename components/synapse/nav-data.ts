@@ -93,7 +93,7 @@ export const NAV_GROUPS: NavGroup[] = [
           en: 'Trade stocks, ETFs and commodities with crypto',
         },
         icon: ChartLine,
-        href: '#',
+        href: '/tradfi',
       },
       {
         id: 'strategy-copy',

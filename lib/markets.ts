@@ -57,30 +57,78 @@ export function formatPrice(price: number) {
   return price.toPrecision(4)
 }
 
+export type MarketKind = 'crypto' | 'stock'
+
+type MarketConfig = {
+  symbol: string
+  base: string
+  quote: string
+  name: Bi
+  priceDp: number
+  qtyDp: number
+  ctVal: number
+  kind: MarketKind
+  ticker: string
+  tvSymbol: string | null
+}
+
+function stock(base: string, ticker: string, exchange: string, name: Bi): MarketConfig {
+  return { symbol: `${base}USDT`, base, quote: 'USDT', name, priceDp: 2, qtyDp: 5, ctVal: 1, kind: 'stock', ticker, tvSymbol: `${exchange}:${ticker}` }
+}
+
 export const MARKETS = {
   BTCUSDT: {
     symbol: 'BTCUSDT',
     base: 'BTC',
     quote: 'USDT',
-    name: { zh: '比特币', en: 'Bitcoin' } as Bi,
+    name: { zh: '比特币', en: 'Bitcoin' },
     priceDp: 2,
     qtyDp: 3,
     ctVal: 0.01,
+    kind: 'crypto',
+    ticker: 'BTC',
+    tvSymbol: null,
   },
   ETHUSDT: {
     symbol: 'ETHUSDT',
     base: 'ETH',
     quote: 'USDT',
-    name: { zh: '以太坊', en: 'Ethereum' } as Bi,
+    name: { zh: '以太坊', en: 'Ethereum' },
     priceDp: 2,
     qtyDp: 3,
     ctVal: 0.1,
+    kind: 'crypto',
+    ticker: 'ETH',
+    tvSymbol: null,
   },
-} as const
+  XAAPLUSDT: stock('XAAPL', 'AAPL', 'NASDAQ', { zh: '苹果', en: 'Apple' }),
+  XNVDAUSDT: stock('XNVDA', 'NVDA', 'NASDAQ', { zh: '英伟达', en: 'NVIDIA' }),
+  XGOOGLUSDT: stock('XGOOGL', 'GOOGL', 'NASDAQ', { zh: '谷歌', en: 'Alphabet (Google)' }),
+  XTSLAUSDT: stock('XTSLA', 'TSLA', 'NASDAQ', { zh: '特斯拉', en: 'Tesla' }),
+  XMCDUSDT: stock('XMCD', 'MCD', 'NYSE', { zh: '麦当劳', en: "McDonald's" }),
+} satisfies Record<string, MarketConfig>
 
 export type MarketSymbol = keyof typeof MARKETS
-export type Market = (typeof MARKETS)[MarketSymbol]
+export type Market = MarketConfig
 export const MARKET_LIST: Market[] = Object.values(MARKETS)
+export const CRYPTO_MARKETS = MARKET_LIST.filter((m) => m.kind === 'crypto')
+export const STOCK_MARKETS = MARKET_LIST.filter((m) => m.kind === 'stock')
+
+export const STOCK_LOGOS: Record<string, string> = {
+  XAAPL: '/logos/apple.svg',
+  XNVDA: '/logos/nvidia.svg',
+  XGOOGL: '/logos/google.svg',
+  XTSLA: '/logos/tesla.svg',
+  XMCD: '/logos/mcdonalds.svg',
+}
+
+export function peerMarkets(market: Pick<Market, 'kind'>) {
+  return market.kind === 'stock' ? STOCK_MARKETS : CRYPTO_MARKETS
+}
+
+export function isCryptoSymbol(value: string): value is MarketSymbol {
+  return isMarketSymbol(value) && MARKETS[value].kind === 'crypto'
+}
 
 export function isMarketSymbol(value: string): value is MarketSymbol {
   return Object.hasOwn(MARKETS, value)
