@@ -25,26 +25,29 @@ function SectionTitle({ children, underline = false }: { children: React.ReactNo
   )
 }
 
-const PILLARS: { letter: string; title: Bi; body: Bi }[] = [
+const PILLARS: { letter: string; name: string; zh: string; body: Bi }[] = [
   {
     letter: 'O',
-    title: { zh: 'One｜统一', en: 'One' },
+    name: 'One',
+    zh: '统一',
     body: { zh: '一个账户体系，统一管理资产、资金与风险。', en: 'One account to manage assets, funds and risk.' },
   },
   {
     letter: 'X',
-    title: { zh: 'eXchange｜交易', en: 'eXchange' },
+    name: 'eXchange',
+    zh: '交易',
     body: { zh: '以证券交易为核心，连接全球投资机会。', en: 'Securities trading at the core, connected to global opportunities.' },
   },
   {
     letter: 'XX',
-    title: { zh: 'Cross-Asset｜跨资产', en: 'Cross-Asset' },
+    name: 'Cross-Asset',
+    zh: '跨资产',
     body: { zh: '打破资产边界，释放跨市场资金效率与策略空间。', en: 'Break asset boundaries and unlock cross-market capital efficiency.' },
   },
 ]
 
 export function AboutHero() {
-  const { t } = useI18n()
+  const { t, isEn } = useI18n()
   return (
     <section className="relative overflow-hidden px-4 pb-20 pt-36 sm:px-6 md:px-8 lg:pt-44">
       <div
@@ -102,16 +105,29 @@ export function AboutHero() {
               key={p.letter}
               {...reveal}
               transition={{ ...reveal.transition, delay: i * 0.1 }}
-              className="flex items-center gap-5 rounded-2xl border border-line bg-panel/80 p-6 backdrop-blur transition-colors hover:border-gold/40"
+              className="group flex items-center gap-5 rounded-2xl border border-line bg-panel/80 p-6 backdrop-blur transition-colors hover:border-gold/40"
             >
               <span
                 aria-hidden="true"
-                className="flex w-14 shrink-0 justify-center font-display text-5xl leading-none text-transparent [background:linear-gradient(180deg,var(--color-foreground),var(--color-gold))] [-webkit-background-clip:text] [background-clip:text]"
+                style={{ animationDelay: `${i * 1.2}s` }}
+                className="laser-tile flex size-16 shrink-0 items-center justify-center rounded-xl"
               >
-                {p.letter}
+                <span className="logo-glow relative grid place-items-center font-display text-4xl leading-none tracking-wider">
+                  <span className="chrome-text col-start-1 row-start-1">{p.letter}</span>
+                  <span className="laser-glyph-stroke col-start-1 row-start-1">{p.letter}</span>
+                </span>
+                <span className="laser-beam pointer-events-none absolute inset-0" />
               </span>
               <div className="flex flex-col gap-1.5">
-                <h3 className="font-bold text-foreground">{t(p.title.zh, p.title.en)}</h3>
+                <h3 className="flex items-baseline gap-2.5">
+                  <span className="chrome-text font-display text-2xl leading-none tracking-wider">{p.name}</span>
+                  {!isEn && (
+                    <>
+                      <span aria-hidden="true" className="h-4 w-px self-center bg-gold/50" />
+                      <span className="text-lg font-black tracking-widest text-gold-light">{p.zh}</span>
+                    </>
+                  )}
+                </h3>
                 <p className="text-sm leading-relaxed text-foreground/55">{t(p.body.zh, p.body.en)}</p>
               </div>
             </motion.li>
