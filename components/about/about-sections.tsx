@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Bi } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n'
+import { ParticleCoin } from './particle-coin'
 
 const reveal = {
   initial: { opacity: 0, y: 24 },
@@ -88,14 +89,7 @@ export function AboutHero() {
             transition={{ duration: 0.9, ease: 'easeOut' }}
             className="w-full max-w-sm lg:max-w-md"
           >
-            <Image
-              src="/images/about-coin.png"
-              alt=""
-              width={1024}
-              height={1024}
-              priority
-              className="h-auto w-full object-contain mix-blend-lighten"
-            />
+            <ParticleCoin />
           </motion.div>
         </div>
 
@@ -307,7 +301,7 @@ const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; tone
     tag: { zh: '品牌动态', en: 'Brand News' },
     title: { zh: '加密友好型证券平台 OXXX 正式上线，一账户打通美股与加密', en: 'OXXX launches: one account for US stocks and crypto' },
     excerpt: {
-      zh: 'OXXX 正式上线，公测两月累计收到 788 条产品反馈，完成了一轮以真实用户为核心的打磨。',
+      zh: 'OXXX 正式上线，公测两月累计收到 788 条产品反馈，完成了一轮以真实用户为核心���打磨。',
       en: 'After a two-month public beta and 788 pieces of product feedback, OXXX is officially live.',
     },
     cover: '/images/chrome-bull.png',

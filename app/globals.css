@@ -244,3 +244,65 @@ html.lenis body {
 .lenis.lenis-scrolling iframe {
   pointer-events: none;
 }
+
+.coin-halo {
+  background: radial-gradient(circle, color-mix(in oklab, var(--color-gold) 38%, transparent), transparent 70%);
+  filter: blur(28px);
+  animation: coin-halo 4.5s ease-in-out infinite;
+}
+
+.coin-tilt {
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.coin-float {
+  animation: coin-float 6s ease-in-out infinite;
+}
+
+.coin-mask {
+  mask-image: radial-gradient(ellipse 52% 62% at 50% 50%, #000 55%, transparent 100%);
+}
+
+.coin-scan::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: -30%;
+  height: 30%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklab, var(--color-gold) 55%, transparent) 48%,
+    color-mix(in oklab, var(--color-foreground) 80%, transparent) 50%,
+    color-mix(in oklab, var(--color-gold) 55%, transparent) 52%,
+    transparent
+  );
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  animation: coin-scan 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes coin-halo {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes coin-float {
+  0%, 100% { transform: translateY(0) rotateY(-8deg); }
+  50% { transform: translateY(-14px) rotateY(8deg); }
+}
+
+@keyframes coin-scan {
+  0% { top: -30%; }
+  60%, 100% { top: 110%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coin-halo,
+  .coin-float,
+  .coin-scan::before {
+    animation: none;
+  }
+}
