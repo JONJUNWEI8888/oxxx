@@ -501,6 +501,7 @@ html.lenis body {
 
 .vip-vignette {
   background:
-    radial-gradient(ellipse at center, transparent 30%, color-mix(in oklab, var(--color-background) 85%, transparent) 78%),
+  radial-gradient(ellipse 42% 38% at center, color-mix(in oklab, var(--color-background) 55%, transparent) 0%, transparent 100%),
+  radial-gradient(ellipse at center, transparent 30%, color-mix(in oklab, var(--color-background) 85%, transparent) 78%),
     linear-gradient(to bottom, var(--color-background) 0%, transparent 18%, transparent 82%, var(--color-background) 100%);
 }

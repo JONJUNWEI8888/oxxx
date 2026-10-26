@@ -50,7 +50,7 @@ function NameGate({ onEnter }: { onEnter: (name: string) => void }) {
           maxLength={24}
           autoComplete="name"
           placeholder={t('你的名字', 'Your name')}
-          className="w-full border-b border-foreground/25 bg-transparent pb-4 text-center text-[28px] text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-gold md:text-[36px]"
+          className="w-full border-b border-foreground/25 bg-transparent pb-4 text-center text-[28px] text-foreground outline-none transition-colors placeholder:text-foreground/55 focus:border-gold md:text-[36px]"
         />
         <motion.button
           type="submit"

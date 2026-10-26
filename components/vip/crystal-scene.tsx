@@ -67,16 +67,16 @@ function Crystal({ unlocked }: { unlocked: boolean }) {
           roughness={0.02}
           transmission={1}
           ior={1.55}
-          chromaticAberration={0.12}
-          anisotropicBlur={0.1}
-          distortion={0.06}
+          chromaticAberration={0.04}
+          anisotropicBlur={0.2}
+          distortion={0.04}
           distortionScale={0.2}
           temporalDistortion={0.02}
-          color="#ffffff"
-          attenuationColor={PINK_LIGHT}
-          attenuationDistance={5}
+          color="#8a7a84"
+          attenuationColor="#3a2632"
+          attenuationDistance={1.6}
         />
-        <Edges threshold={12} color={PINK_LIGHT} transparent opacity={0.55} />
+        <Edges threshold={12} color={PINK_LIGHT} transparent opacity={0.28} />
       </mesh>
     </group>
   )
@@ -90,7 +90,7 @@ function OrbitRing({ radius, tilt, speed }: { radius: number; tilt: [number, num
   return (
     <mesh ref={ref} rotation={[tilt[0], tilt[1], 0]}>
       <torusGeometry args={[radius, 0.007, 16, 220]} />
-      <meshStandardMaterial color={PINK_LIGHT} metalness={1} roughness={0.12} emissive={PINK} emissiveIntensity={0.35} />
+      <meshStandardMaterial color={PINK_LIGHT} metalness={1} roughness={0.2} emissive={PINK} emissiveIntensity={0.12} transparent opacity={0.55} />
     </mesh>
   )
 }
@@ -138,13 +138,13 @@ export function CrystalScene({ unlocked }: { unlocked: boolean }) {
     <Canvas
       dpr={[1, 1.75]}
       camera={{ position: [0, 0, 7], fov: 35 }}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, powerPreference: 'high-performance', toneMappingExposure: 0.7 }}
       aria-hidden="true"
     >
       <color attach="background" args={['#000000']} />
-      <fog attach="fog" args={['#000000', 7, 14]} />
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[3, 4, 5]} intensity={1.4} color={PINK_LIGHT} />
+      <fog attach="fog" args={['#000000', 6, 12]} />
+      <ambientLight intensity={0.12} />
+      <directionalLight position={[3, 4, 5]} intensity={0.7} color={PINK_LIGHT} />
 
       <Float speed={1.2} rotationIntensity={0.2} floatIntensity={0.6}>
         <Crystal unlocked={unlocked} />
@@ -154,13 +154,13 @@ export function CrystalScene({ unlocked }: { unlocked: boolean }) {
       <OrbitRing radius={2.75} tilt={[Math.PI / 1.8, -0.35]} speed={-0.08} />
 
       <Shards />
-      <Sparkles count={90} scale={[9, 6, 4]} size={2.4} speed={0.35} opacity={0.7} color={PINK_LIGHT} />
+      <Sparkles count={70} scale={[9, 6, 4]} size={2} speed={0.35} opacity={0.4} color={PINK_LIGHT} />
 
       <Environment resolution={256}>
-        <Lightformer form="ring" intensity={1.2} color={PINK} position={[0, 3, -6]} scale={6} />
-        <Lightformer form="rect" intensity={4} color="#ffffff" position={[-5, 1, 2]} rotation-y={Math.PI / 2} scale={[8, 2, 1]} />
-        <Lightformer form="rect" intensity={2.5} color={PINK_LIGHT} position={[5, -1, 1]} rotation-y={-Math.PI / 2} scale={[6, 3, 1]} />
-        <Lightformer form="circle" intensity={2} color="#ffffff" position={[0, 5, 0]} rotation-x={Math.PI / 2} scale={3} />
+        <Lightformer form="ring" intensity={0.6} color={PINK} position={[0, 3, -6]} scale={6} />
+        <Lightformer form="rect" intensity={1.4} color="#ffffff" position={[-5, 1, 2]} rotation-y={Math.PI / 2} scale={[8, 2, 1]} />
+        <Lightformer form="rect" intensity={1} color={PINK_LIGHT} position={[5, -1, 1]} rotation-y={-Math.PI / 2} scale={[6, 3, 1]} />
+        <Lightformer form="circle" intensity={0.8} color="#ffffff" position={[0, 5, 0]} rotation-x={Math.PI / 2} scale={3} />
       </Environment>
 
       <Rig />
