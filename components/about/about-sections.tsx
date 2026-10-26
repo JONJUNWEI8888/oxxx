@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { Bi } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n'
 import { ParticleCoin } from './particle-coin'
+import { PhoneShowcase } from './phone-showcase'
 import { ValueOrb } from './value-orb'
 
 const reveal = {
@@ -267,8 +268,12 @@ export function Services() {
   return (
     <section className="px-4 py-20 sm:px-6 md:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:gap-20">
-        <motion.div {...reveal} className="lg:w-1/3">
+        <motion.div {...reveal} className="flex flex-col gap-16 lg:w-1/3">
           <SectionTitle>{t('我们的服务', 'Our Services')}</SectionTitle>
+          <PhoneShowcase
+            label={t('OXXX App 深度摆盘界面：英伟达 (NVDA) 买卖盘', 'OXXX app order book view for NVIDIA (NVDA)')}
+            hint={t('拖动旋转手机', 'Drag to rotate')}
+          />
         </motion.div>
         <ul className="flex flex-1 flex-col">
           {SERVICES.map((s, i) => (
@@ -309,7 +314,7 @@ const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; tone
     tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
     title: { zh: '从 USDT 到美股：OXXX 统一市场交易指南', en: 'From USDT to US stocks: the OXXX unified trading guide' },
     excerpt: {
-      zh: '通过四个步骤，了解如何在 OXXX 完成 USDT 兑换划转，交易美股、ETF 与期权。',
+      zh: '通过四个步骤，了解如何在 OXXX 完成 USDT 兑换划转，交易美股、ETF 与期权��',
       en: 'Four steps to convert and transfer USDT, then trade US stocks, ETFs and options on OXXX.',
     },
     cover: '/images/login-coins.png',
