@@ -83,7 +83,7 @@ export const NAV_GROUPS: NavGroup[] = [
         title: { zh: '期权', en: 'Options' },
         description: { zh: '多策略期权交易', en: 'Multi-strategy options trading' },
         icon: CalendarCheck,
-        href: '#',
+        href: '/options/BTC-USDT',
       },
       {
         id: 'spot-rfq',
