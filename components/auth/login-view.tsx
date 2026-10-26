@@ -2,8 +2,8 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Download, Eye, EyeOff, KeyRound } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { CoinOrbit } from '@/components/coin-orbit'
 import { useId, useState } from 'react'
 import { LanguageSwitcher } from '@/components/synapse/language-switcher'
 import { I18nProvider, useI18n } from '@/lib/i18n'
@@ -66,7 +66,14 @@ export function WelcomePanel() {
         transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut' }}
         className="relative mt-auto flex justify-center"
       >
-        <CoinOrbit className="max-w-[560px] translate-y-10" />
+        <Image
+          src="/images/login-coins.png"
+          alt=""
+          width={1024}
+          height={1024}
+          priority
+          className="h-auto w-full max-w-[560px] translate-y-10 object-contain mix-blend-lighten"
+        />
       </motion.div>
     </section>
   )
