@@ -303,39 +303,39 @@ export function Services() {
   )
 }
 
-const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; tone: 'dark' | 'pink' }[] = [
+const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; date: string }[] = [
   {
-    tag: { zh: '品牌动态', en: 'Brand News' },
-    title: { zh: '加密友好型证券平台 OXXX 正式上线，一账户打通美股与加密', en: 'OXXX launches: one account for US stocks and crypto' },
+    tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
+    title: { zh: '从 CEX + 传统券商，到 ALL IN OXXX', en: 'From CEX + traditional broker to ALL IN OXXX' },
     excerpt: {
-      zh: 'OXXX 正式上线，公测两月累计收到 788 条产品反馈，完成了一轮以真实用户为核心���打磨��',
-      en: 'After a two-month public beta and 788 pieces of product feedback, OXXX is officially live.',
+      zh: '告别分账户带来的资金、执行与风险三类成本。OXXX 围绕账户、资金、工具、风险四层重构，让加密资产与真实股票在同一框架下双向提升资金效率。',
+      en: 'Cut the capital, execution and risk costs of split accounts. OXXX rebuilds accounts, funding, tools and risk so crypto and real stocks share one capital-efficient framework.',
     },
-    cover: '/images/chrome-bull.png',
-    headline: { zh: 'OXXX 正式上线', en: 'OXXX is live' },
-    tone: 'dark',
+    cover: '/images/news/all-in.png',
+    headline: { zh: '一个账户，ALL IN 币股', en: 'One account, ALL IN' },
+    date: '2026.07',
   },
   {
     tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
     title: { zh: '从 USDT 到美股：OXXX 统一市场交易指南', en: 'From USDT to US stocks: the OXXX unified trading guide' },
     excerpt: {
-      zh: '通过四个步骤，了解如何在 OXXX 完成 USDT 兑换划转，交易美股、ETF 与期权��',
-      en: 'Four steps to convert and transfer USDT, then trade US stocks, ETFs and options on OXXX.',
+      zh: '四个步骤：兑换划转、借贷划转或授信形成美股购买力；App + API 交易美股、ETF 与期权；“股转币”释放统一保证金；理财资产生息交易两不误。',
+      en: 'Four steps: turn USDT or BTC into US buying power, trade stocks, ETFs and options via App + API, tokenize holdings into unified margin, and keep earning yield while trading.',
     },
-    cover: '/images/login-coins.png',
-    headline: { zh: '统一市场交易指南', en: 'Unified trading guide' },
-    tone: 'pink',
+    cover: '/images/news/usdt-us.png',
+    headline: { zh: '持 U 直通美股', en: 'USDT to US stocks' },
+    date: '2026.07',
   },
   {
     tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
-    title: { zh: '从 CEX + 传统券商，到 ALL IN OXXX', en: 'From CEX + broker to ALL IN OXXX' },
+    title: { zh: 'OXXX 港股灰度上线：持 U 即买港股，币股互通再进一步', en: 'HK stocks now in beta on OXXX: buy HK stocks with USDT' },
     excerpt: {
-      zh: 'OXXX 通过统一账户、跨资产保证金、工具协同与组合风险管理，连接加密与传统市场。',
-      en: 'Unified accounts, cross-asset margin and portfolio risk tools connecting crypto and traditional markets.',
+      zh: '支持港股正股及 ETF、融资融券与沽空，14 种订单类型。USDT、BTC、ETH 均可快速形成港股购买力，港股持仓也可反向抵押获得加密购买力。',
+      en: 'Trade HK stocks and ETFs with margin and short selling across 14 order types. USDT, BTC and ETH become HK buying power, and HK holdings can back crypto trades.',
     },
-    cover: '/images/gold-bull.png',
-    headline: { zh: '加密友好型证券平台', en: 'Crypto-friendly securities' },
-    tone: 'pink',
+    cover: '/images/news/hk-stocks.png',
+    headline: { zh: '港股 × 加密 双向互通', en: 'HK stocks × crypto' },
+    date: '2026.10',
   },
 ]
 
@@ -354,27 +354,26 @@ export function News() {
           {NEWS.map((n, i) => (
             <motion.li key={n.cover} {...reveal} transition={{ ...reveal.transition, delay: i * 0.1 }}>
               <a href="#" className="group flex h-full flex-col overflow-hidden rounded-2xl bg-raised focus-visible:outline-2 focus-visible:outline-gold">
-                <div
-                  className={
-                    n.tone === 'dark'
-                      ? 'relative flex aspect-[16/10] flex-col justify-between overflow-hidden bg-gradient-to-br from-foreground/25 via-panel to-background p-5'
-                      : 'relative flex aspect-[16/10] flex-col justify-between overflow-hidden bg-gradient-to-br from-gold-light via-gold to-gold-deep p-5'
-                  }
-                >
-                  <span className="relative z-10 font-display text-2xl leading-none tracking-[0.04em] text-foreground">OXXX</span>
-                  <span className="relative z-10 max-w-[60%] text-pretty font-display text-xl leading-tight text-foreground">
-                    {t(n.headline.zh, n.headline.en)}
-                  </span>
+                <div className="relative flex aspect-[16/10] flex-col justify-between overflow-hidden bg-background p-5">
                   <Image
                     src={n.cover}
                     alt=""
-                    width={512}
-                    height={512}
-                    className="absolute -right-6 bottom-0 h-full w-auto object-contain transition-transform duration-500 group-hover:scale-105"
+                    fill
+                    sizes="(min-width: 768px) 33vw, 100vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
+                  <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent" />
+                  <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background/80 to-transparent" />
+                  <span className="relative z-10 font-display text-2xl leading-none tracking-[0.04em] text-foreground">OXXX</span>
+                  <span className="relative z-10 max-w-[70%] text-pretty font-display text-xl leading-tight text-foreground">
+                    {t(n.headline.zh, n.headline.en)}
+                  </span>
                 </div>
                 <div className="flex flex-1 flex-col gap-4 p-6">
-                  <span className="w-fit rounded-md bg-gold/15 px-2.5 py-1 text-xs text-gold">{t(n.tag.zh, n.tag.en)}</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="w-fit rounded-md bg-gold/15 px-2.5 py-1 text-xs text-gold">{t(n.tag.zh, n.tag.en)}</span>
+                    <time className="font-mono text-xs text-foreground/45">{n.date}</time>
+                  </div>
                   <h3 className="line-clamp-2 text-pretty text-lg font-bold leading-snug text-foreground">{t(n.title.zh, n.title.en)}</h3>
                   <div className="mt-auto flex items-end gap-4">
                     <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-foreground/55">{t(n.excerpt.zh, n.excerpt.en)}</p>
