@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { Bi } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n'
 import { ParticleCoin } from './particle-coin'
+import { ValueOrb } from './value-orb'
 
 const reveal = {
   initial: { opacity: 0, y: 24 },
@@ -225,13 +226,7 @@ export function Values() {
               className="group flex flex-col items-center gap-6 rounded-3xl bg-raised px-6 pb-6 pt-10 transition-colors hover:bg-raised/70"
             >
               <h3 className="text-center text-xl font-bold text-foreground">{t(v.title.zh, v.title.en)}</h3>
-              <Image
-                src={v.image}
-                alt=""
-                width={512}
-                height={512}
-                className="aspect-square w-full max-w-[240px] object-contain mix-blend-lighten transition-transform duration-500 group-hover:-translate-y-2"
-              />
+              <ValueOrb src={v.image} ringTilt={[-18, 14, -8][i]} delay={i * -1.4} />
             </motion.li>
           ))}
         </ul>
@@ -303,7 +298,7 @@ const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; tone
     tag: { zh: '品牌动态', en: 'Brand News' },
     title: { zh: '加密友好型证券平台 OXXX 正式上线，一账户打通美股与加密', en: 'OXXX launches: one account for US stocks and crypto' },
     excerpt: {
-      zh: 'OXXX 正式上线，公测两月累计收到 788 条产品反馈，完成了一轮以真实用户为核心���打磨。',
+      zh: 'OXXX 正式上线，公测两月累计收到 788 条产品反馈，完成了一轮以真实用户为核心���打磨��',
       en: 'After a two-month public beta and 788 pieces of product feedback, OXXX is officially live.',
     },
     cover: '/images/chrome-bull.png',

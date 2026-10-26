@@ -308,6 +308,77 @@ html.lenis body {
   }
 }
 
+.value-halo {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in oklab, var(--color-gold) 55%, transparent) 70deg,
+    transparent 140deg,
+    color-mix(in oklab, var(--color-foreground) 25%, transparent) 220deg,
+    transparent 290deg
+  );
+  filter: blur(26px);
+  opacity: 0.7;
+  animation: value-halo 7s linear infinite;
+  animation-delay: var(--orb-delay, 0s);
+}
+
+.value-tilt {
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.value-spin {
+  transform-style: preserve-3d;
+  animation: value-spin 8s ease-in-out infinite;
+  animation-delay: var(--orb-delay, 0s);
+}
+
+.value-mask {
+  filter: drop-shadow(0 18px 28px color-mix(in oklab, var(--color-gold) 30%, transparent));
+}
+
+.value-shine {
+  mask-mode: alpha;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in oklab, var(--color-foreground) 70%, transparent) 48%,
+    color-mix(in oklab, var(--color-gold) 60%, transparent) 52%,
+    transparent 65%
+  );
+  background-size: 300% 100%;
+  mix-blend-mode: screen;
+  animation: value-shine 4.2s ease-in-out infinite;
+  animation-delay: var(--orb-delay, 0s);
+}
+
+@keyframes value-halo {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes value-spin {
+  0%, 100% { transform: translateY(0) rotateY(-28deg) rotateX(6deg); }
+  50% { transform: translateY(-12px) rotateY(28deg) rotateX(-6deg); }
+}
+
+@keyframes value-shine {
+  0% { background-position: 120% 0; }
+  55%, 100% { background-position: -40% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value-halo,
+  .value-spin,
+  .value-shine {
+    animation: none;
+  }
+}
+
 .laser-badge {
   background: radial-gradient(circle, color-mix(in oklab, var(--color-gold) 14%, transparent), transparent 70%);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-gold) 30%, transparent),
