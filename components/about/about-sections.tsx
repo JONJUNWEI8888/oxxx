@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Bi } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n'
+import { ARTICLES } from '@/lib/news'
 import { ParticleCoin } from './particle-coin'
 import { PhoneShowcase } from './phone-showcase'
 import { ValueOrb } from './value-orb'
@@ -303,41 +304,7 @@ export function Services() {
   )
 }
 
-const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; date: string }[] = [
-  {
-    tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
-    title: { zh: '从 CEX + 传统券商，到 ALL IN OXXX', en: 'From CEX + traditional broker to ALL IN OXXX' },
-    excerpt: {
-      zh: '告别分账户带来的资金、执行与风险三类成本。OXXX 围绕账户、资金、工具、风险四层重构，让加密资产与真实股票在同一框架下双向提升资金效率。',
-      en: 'Cut the capital, execution and risk costs of split accounts. OXXX rebuilds accounts, funding, tools and risk so crypto and real stocks share one capital-efficient framework.',
-    },
-    cover: '/images/news/all-in.png',
-    headline: { zh: '一个账户，ALL IN 币股', en: 'One account, ALL IN' },
-    date: '2026.07',
-  },
-  {
-    tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
-    title: { zh: '从 USDT 到美股：OXXX 统一市场交易指南', en: 'From USDT to US stocks: the OXXX unified trading guide' },
-    excerpt: {
-      zh: '四个步骤：兑换划转、借贷划转或授信形成美股购买力；App + API 交易美股、ETF 与期权；“股转币”释放统一保证金；理财资产生息交易两不误。',
-      en: 'Four steps: turn USDT or BTC into US buying power, trade stocks, ETFs and options via App + API, tokenize holdings into unified margin, and keep earning yield while trading.',
-    },
-    cover: '/images/news/usdt-us.png',
-    headline: { zh: '持 U 直通美股', en: 'USDT to US stocks' },
-    date: '2026.07',
-  },
-  {
-    tag: { zh: 'OXXX 指南', en: 'OXXX Guide' },
-    title: { zh: 'OXXX 港股灰度上线：持 U 即买港股，币股互通再进一步', en: 'HK stocks now in beta on OXXX: buy HK stocks with USDT' },
-    excerpt: {
-      zh: '支持港股正股及 ETF、融资融券与沽空，14 种订单类型。USDT、BTC、ETH 均可快速形成港股购买力，港股持仓也可反向抵押获得加密购买力。',
-      en: 'Trade HK stocks and ETFs with margin and short selling across 14 order types. USDT, BTC and ETH become HK buying power, and HK holdings can back crypto trades.',
-    },
-    cover: '/images/news/hk-stocks.png',
-    headline: { zh: '港股 × 加密 双向互通', en: 'HK stocks × crypto' },
-    date: '2026.10',
-  },
-]
+const NEWS = ARTICLES
 
 export function News() {
   const { t } = useI18n()
@@ -353,7 +320,7 @@ export function News() {
         <ul className="grid gap-6 md:grid-cols-3">
           {NEWS.map((n, i) => (
             <motion.li key={n.cover} {...reveal} transition={{ ...reveal.transition, delay: i * 0.1 }}>
-              <a href="#" className="group flex h-full flex-col overflow-hidden rounded-2xl bg-raised focus-visible:outline-2 focus-visible:outline-gold">
+              <Link href={`/news/${n.slug}`} className="group flex h-full flex-col overflow-hidden rounded-2xl bg-raised focus-visible:outline-2 focus-visible:outline-gold">
                 <div className="relative flex aspect-[16/10] flex-col justify-between overflow-hidden bg-background p-5">
                   <Image
                     src={n.cover}
@@ -382,7 +349,7 @@ export function News() {
                     </span>
                   </div>
                 </div>
-              </a>
+              </Link>
             </motion.li>
           ))}
         </ul>
