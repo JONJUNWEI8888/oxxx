@@ -21,7 +21,7 @@ const LINK_GROUPS = [
     id: 'about',
     title: { zh: '关于', en: 'About' },
     links: [
-      { id: 'about', label: { zh: '关于 oxxx.io', en: 'About oxxx.io' }, href: '#about' },
+      { id: 'about', label: { zh: '关于 oxxx.io', en: 'About oxxx.io' }, href: '/about' },
       { id: 'token', label: { zh: '代币信息', en: 'Token Info' }, href: '#about' },
       { id: 'metrics', label: { zh: '交易数据', en: 'Trading Data' }, href: '#metrics' },
     ],
