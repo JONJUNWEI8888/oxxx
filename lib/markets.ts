@@ -65,6 +65,7 @@ export const MARKETS = {
     name: { zh: '比特币', en: 'Bitcoin' } as Bi,
     priceDp: 2,
     qtyDp: 3,
+    ctVal: 0.01,
   },
   ETHUSDT: {
     symbol: 'ETHUSDT',
@@ -73,6 +74,7 @@ export const MARKETS = {
     name: { zh: '以太坊', en: 'Ethereum' } as Bi,
     priceDp: 2,
     qtyDp: 3,
+    ctVal: 0.1,
   },
 } as const
 
@@ -119,34 +121,44 @@ export const CHART_COLORS = {
   ma99: '#7d8bd6',
 } as const
 
-const KLINE_SOURCES = [
-  (symbol: string, interval: string) =>
-    `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`,
-  (symbol: string, interval: string) =>
-    `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=500`,
-]
+export type TradeMode = 'spot' | 'swap'
 
-type RawKline = [number, string, string, string, string, string, ...unknown[]]
+export function okxInstId(market: Pick<Market, 'base' | 'quote'>, mode: TradeMode) {
+  return mode === 'swap' ? `${market.base}-${market.quote}-SWAP` : `${market.base}-${market.quote}`
+}
 
-export async function fetchKlines(symbol: MarketSymbol, interval: Interval): Promise<Candle[]> {
-  for (const buildUrl of KLINE_SOURCES) {
-    try {
-      const res = await fetch(buildUrl(symbol, interval))
-      if (!res.ok) continue
-      const rows = (await res.json()) as RawKline[]
-      return rows.map((row) => ({
-        time: row[0],
-        open: Number(row[1]),
-        high: Number(row[2]),
-        low: Number(row[3]),
-        close: Number(row[4]),
-        volume: Number(row[5]),
-      }))
-    } catch {
-      // Region-restricted endpoints fail CORS; fall through to the next source.
-    }
-  }
-  throw new Error('Kline history unavailable')
+export function tradeHref(mode: TradeMode, symbol: string) {
+  return mode === 'swap' ? `/futures/${symbol}` : `/trade/${symbol}`
+}
+
+export const OKX_BARS: Record<Interval, string> = {
+  '1m': '1m',
+  '5m': '5m',
+  '15m': '15m',
+  '1h': '1H',
+  '4h': '4H',
+  '1d': '1Dutc',
+  '1w': '1Wutc',
+}
+
+export async function fetchKlines(symbol: MarketSymbol, interval: Interval, mode: TradeMode): Promise<Candle[]> {
+  const instId = okxInstId(MARKETS[symbol], mode)
+  const res = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${instId}&bar=${OKX_BARS[interval]}&limit=300`)
+  if (!res.ok) throw new Error('Kline history unavailable')
+  const body = (await res.json()) as { code: string; data: string[][] }
+  if (body.code !== '0') throw new Error('Kline history unavailable')
+  // OKX returns newest first; spot volume is in base units, swap volume in contracts (base volume at index 6).
+  const volumeIndex = mode === 'swap' ? 6 : 5
+  return body.data
+    .map((row) => ({
+      time: Number(row[0]),
+      open: Number(row[1]),
+      high: Number(row[2]),
+      low: Number(row[3]),
+      close: Number(row[4]),
+      volume: Number(row[volumeIndex]),
+    }))
+    .reverse()
 }
 
 export function formatNumber(value: number | null | undefined, dp: number) {

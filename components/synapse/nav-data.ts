@@ -76,7 +76,7 @@ export const NAV_GROUPS: NavGroup[] = [
         title: { zh: '合约', en: 'Futures' },
         description: { zh: '永续及交割合约，杠杆灵活可调', en: 'Perpetual and delivery futures with flexible leverage' },
         icon: ScrollText,
-        href: '#',
+        href: '/futures/BTCUSDT',
       },
       {
         id: 'crypto-options',
@@ -164,7 +164,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: 'about',
-    label: { zh: '关于我们', en: 'About' },
+    label: { zh: '���于我们', en: 'About' },
     items: [
       {
         id: 'about-oxxx',

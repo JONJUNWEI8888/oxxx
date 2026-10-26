@@ -49,7 +49,7 @@ function loadTradingView() {
   return scriptPromise
 }
 
-export function TradingViewChart({ market, interval }: { market: Market; interval: Interval }) {
+export function TradingViewChart({ market, interval, mode }: { market: Market; interval: Interval; mode: TradeMode }) {
   const { t, lang } = useI18n()
   const containerId = `tv-${useId().replace(/:/g, '')}`
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -67,7 +67,7 @@ export function TradingViewChart({ market, interval }: { market: Market; interva
         widget = new TradingView.widget({
           container_id: containerId,
           autosize: true,
-          symbol: `BINANCE:${market.symbol}.P`,
+          symbol: `OKX:${market.symbol}${mode === 'swap' ? '.P' : ''}`,
           interval: TV_INTERVALS[interval],
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           theme: 'dark',
@@ -115,7 +115,7 @@ export function TradingViewChart({ market, interval }: { market: Market; interva
       const container = document.getElementById(containerId)
       if (container) container.innerHTML = ''
     }
-  }, [containerId, market.symbol, interval, lang])
+  }, [containerId, market.symbol, interval, lang, mode])
 
   return (
     <div className="relative size-full">

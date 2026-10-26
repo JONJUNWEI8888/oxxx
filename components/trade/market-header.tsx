@@ -3,9 +3,9 @@
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import type { MarketSnapshot } from '@/hooks/use-binance-market'
+import type { MarketSnapshot } from '@/hooks/use-okx-market'
 import { useI18n } from '@/lib/i18n'
-import { MARKET_LIST, type Market, formatCompact, formatNumber, formatSigned } from '@/lib/markets'
+import { MARKET_LIST, type Market, type TradeMode, formatCompact, formatNumber, formatSigned, tradeHref } from '@/lib/markets'
 import { cn } from '@/lib/utils'
 
 export function CoinBadge({ base, className = 'size-7' }: { base: string; className?: string }) {
@@ -59,7 +59,7 @@ function formatCountdown(ms: number) {
   return `${h}:${m}:${s}`
 }
 
-function PairSwitcher({ market, snapshot, leverage }: { market: Market; snapshot: MarketSnapshot; leverage: number | null }) {
+function PairSwitcher({ market, mode, snapshot, leverage }: { market: Market; mode: TradeMode; snapshot: MarketSnapshot; leverage: number | null }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -89,6 +89,7 @@ function PairSwitcher({ market, snapshot, leverage }: { market: Market; snapshot
         <span className="text-xl font-bold text-white">
           {market.base}/{market.quote}
         </span>
+        {mode === 'swap' && <span className="rounded bg-gold/15 px-1.5 py-0.5 text-xs font-bold text-gold-light">{t('永续', 'Perp')}</span>}
         {leverage && <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/70">{leverage}x</span>}
         <ChevronDown className={cn('size-4 text-white/60 transition-transform', open && 'rotate-180')} aria-hidden="true" />
       </button>
@@ -100,7 +101,7 @@ function PairSwitcher({ market, snapshot, leverage }: { market: Market; snapshot
             return (
               <li key={m.symbol} role="option" aria-selected={m.symbol === market.symbol}>
                 <Link
-                  href={`/trade/${m.symbol}`}
+                  href={tradeHref(mode, m.symbol)}
                   onClick={() => setOpen(false)}
                   className={cn('flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-white/[0.06]', m.symbol === market.symbol && 'bg-white/[0.04]')}
                 >
@@ -125,7 +126,17 @@ function PairSwitcher({ market, snapshot, leverage }: { market: Market; snapshot
   )
 }
 
-export function MarketHeader({ market, snapshot, leverage }: { market: Market; snapshot: MarketSnapshot; leverage: number | null }) {
+export function MarketHeader({
+  market,
+  mode,
+  snapshot,
+  leverage,
+}: {
+  market: Market
+  mode: TradeMode
+  snapshot: MarketSnapshot
+  leverage: number | null
+}) {
   const { t } = useI18n()
   const ticker = snapshot.tickers[market.symbol]
   const price = snapshot.lastPrice ?? ticker?.last ?? null
@@ -135,7 +146,7 @@ export function MarketHeader({ market, snapshot, leverage }: { market: Market; s
 
   return (
     <section aria-label={t('行情概览', 'Market overview')} className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg bg-panel px-4 py-3">
-      <PairSwitcher market={market} snapshot={snapshot} leverage={leverage} />
+      <PairSwitcher market={market} mode={mode} snapshot={snapshot} leverage={leverage} />
 
       <div className="flex flex-col">
         <span aria-live="off" className={cn('text-2xl font-bold tabular-nums transition-colors duration-200', priceTone)}>
@@ -151,12 +162,21 @@ export function MarketHeader({ market, snapshot, leverage }: { market: Market; s
         <Stat label={t('24h最低价', '24h Low')} value={formatNumber(ticker?.low, market.priceDp)} />
         <Stat label={`${t('24h成交量', '24h Volume')} (${market.base})`} value={formatCompact(ticker?.volume)} />
         <Stat label={`${t('24h成交额', '24h Turnover')} (${market.quote})`} value={formatCompact(ticker?.quoteVolume)} />
-        <Stat label={t('标记价格', 'Mark Price')} value={formatNumber(mark?.markPrice, market.priceDp)} />
-        <Stat
-          label={`${t('资金费率', 'Funding')} / ${t('倒计时', 'Countdown')}`}
-          value={mark ? `${formatSigned(mark.fundingRate * 100, 4, '%')} / ${formatCountdown(mark.nextFundingTime - Date.now())}` : '--'}
-          tone={mark && mark.fundingRate < 0 ? 'text-down' : 'text-gold-light'}
-        />
+        {mode === 'swap' && (
+          <>
+            <Stat label={t('标记价格', 'Mark Price')} value={formatNumber(mark?.markPrice, market.priceDp)} />
+            <Stat label={t('指数价格', 'Index Price')} value={formatNumber(mark?.indexPrice, market.priceDp)} />
+            <Stat
+              label={`${t('资金费率', 'Funding')} / ${t('倒计时', 'Countdown')}`}
+              value={
+                mark && Number.isFinite(mark.fundingRate)
+                  ? `${formatSigned(mark.fundingRate * 100, 4, '%')} / ${formatCountdown(mark.nextFundingTime - Date.now())}`
+                  : '--'
+              }
+              tone={mark && mark.fundingRate < 0 ? 'text-down' : 'text-gold-light'}
+            />
+          </>
+        )}
       </div>
     </section>
   )

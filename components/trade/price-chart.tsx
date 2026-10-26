@@ -13,9 +13,9 @@ import {
 } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
-import type { LiveCandle } from '@/hooks/use-binance-market'
+import type { LiveCandle } from '@/hooks/use-okx-market'
 import { useI18n } from '@/lib/i18n'
-import { CHART_COLORS, type Candle, type Interval, type Market, fetchKlines, formatNumber } from '@/lib/markets'
+import { CHART_COLORS, type Candle, type Interval, type Market, type TradeMode, fetchKlines, formatNumber } from '@/lib/markets'
 
 const MA_PERIODS = [
   { period: 7, color: CHART_COLORS.ma7 },
@@ -47,7 +47,7 @@ const volumeBar = (c: Candle) => ({
 
 const candleBar = (c: Candle) => ({ time: toChartTime(c.time), open: c.open, high: c.high, low: c.low, close: c.close })
 
-export function PriceChart({ market, interval, liveCandle }: { market: Market; interval: Interval; liveCandle: LiveCandle | null }) {
+export function PriceChart({ market, interval, mode, liveCandle }: { market: Market; interval: Interval; mode: TradeMode; liveCandle: LiveCandle | null }) {
   const { t, lang } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -56,7 +56,7 @@ export function PriceChart({ market, interval, liveCandle }: { market: Market; i
   const hoveringRef = useRef(false)
   const [legend, setLegend] = useState<{ candle: Candle; ma: (number | null)[] } | null>(null)
 
-  const { data: history, error, isLoading } = useSWR(['klines', market.symbol, interval], () => fetchKlines(market.symbol, interval), {
+  const { data: history, error, isLoading } = useSWR(['klines', mode, market.symbol, interval], () => fetchKlines(market.symbol, interval, mode), {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   })

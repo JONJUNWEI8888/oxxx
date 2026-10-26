@@ -2,7 +2,7 @@
 
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useState } from 'react'
-import type { BookLevel, MarketSnapshot } from '@/hooks/use-binance-market'
+import type { BookLevel, MarketSnapshot } from '@/hooks/use-okx-market'
 import { useI18n } from '@/lib/i18n'
 import { type Market, formatNumber } from '@/lib/markets'
 import { cn } from '@/lib/utils'

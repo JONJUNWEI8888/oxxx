@@ -2,7 +2,7 @@
 
 import { Percent } from 'lucide-react'
 import { useState } from 'react'
-import type { MarketSnapshot } from '@/hooks/use-binance-market'
+import type { MarketSnapshot } from '@/hooks/use-okx-market'
 import { useI18n } from '@/lib/i18n'
 import { type Market, formatNumber } from '@/lib/markets'
 import { cn } from '@/lib/utils'
@@ -42,7 +42,19 @@ function Field({
   )
 }
 
-export function OrderForm({ market, snapshot, leverage, onLeverageChange }: { market: Market; snapshot: MarketSnapshot; leverage: number | null; onLeverageChange: (v: number | null) => void }) {
+export function OrderForm({
+  market,
+  snapshot,
+  leverage,
+  onLeverageChange,
+  isPerpetual = false,
+}: {
+  market: Market
+  snapshot: MarketSnapshot
+  leverage: number | null
+  onLeverageChange: (v: number | null) => void
+  isPerpetual?: boolean
+}) {
   const { t } = useI18n()
   const [side, setSide] = useState<'buy' | 'sell'>('buy')
   const [type, setType] = useState<'limit' | 'market'>('limit')
@@ -64,7 +76,7 @@ export function OrderForm({ market, snapshot, leverage, onLeverageChange }: { ma
   return (
     <section aria-label={t('下单', 'Place order')} className="flex h-full flex-col gap-4 rounded-lg bg-panel p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[15px] font-bold text-white">{leverage ? t('杠杆', 'Margin') : t('现货', 'Spot')}</h2>
+        <h2 className="text-[15px] font-bold text-white">{isPerpetual ? t('永续合约', 'Perpetual') : leverage ? t('杠杆', 'Margin') : t('现货', 'Spot')}</h2>
         <button
           type="button"
           role="switch"

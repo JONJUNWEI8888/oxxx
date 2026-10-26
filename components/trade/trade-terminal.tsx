@@ -4,9 +4,20 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { LanguageSwitcher } from '@/components/synapse/language-switcher'
 import { DesktopNavMenu } from '@/components/synapse/nav-menu'
-import { type MarketSnapshot, useBinanceMarket } from '@/hooks/use-binance-market'
+import { type MarketSnapshot, useOkxMarket } from '@/hooks/use-okx-market'
 import { I18nProvider, useI18n } from '@/lib/i18n'
-import { INTERVALS, type Interval, MARKETS, MARKET_LIST, type Market, type MarketSymbol, formatNumber, formatSigned } from '@/lib/markets'
+import {
+  INTERVALS,
+  type Interval,
+  MARKETS,
+  MARKET_LIST,
+  type Market,
+  type MarketSymbol,
+  type TradeMode,
+  formatNumber,
+  formatSigned,
+  tradeHref,
+} from '@/lib/markets'
 import { cn } from '@/lib/utils'
 import { AccountPanel, PositionsPanel } from './account-panels'
 import { InstrumentInfo } from './instrument-info'
@@ -38,7 +49,19 @@ function TradeNav() {
   )
 }
 
-function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: Market; snapshot: MarketSnapshot; interval: Interval; onIntervalChange: (v: Interval) => void }) {
+function ChartPanel({
+  market,
+  mode,
+  snapshot,
+  interval,
+  onIntervalChange,
+}: {
+  market: Market
+  mode: TradeMode
+  snapshot: MarketSnapshot
+  interval: Interval
+  onIntervalChange: (v: Interval) => void
+}) {
   const { t } = useI18n()
   const [tab, setTab] = useState<'chart' | 'info'>('chart')
   const [view, setView] = useState<'tradingview' | 'basic'>('tradingview')
@@ -113,9 +136,9 @@ function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: 
 
       <div className={cn('min-h-0 flex-1', tab !== 'chart' && 'hidden')}>
         {view === 'tradingview' ? (
-          <TradingViewChart market={market} interval={interval} />
+          <TradingViewChart market={market} interval={interval} mode={mode} />
         ) : (
-          <PriceChart market={market} interval={interval} liveCandle={snapshot.candle} />
+          <PriceChart market={market} interval={interval} mode={mode} liveCandle={snapshot.candle} />
         )}
       </div>
       {tab === 'info' && <InstrumentInfo market={market} />}
@@ -123,7 +146,7 @@ function ChartPanel({ market, snapshot, interval, onIntervalChange }: { market: 
   )
 }
 
-function StatusBar({ snapshot }: { snapshot: MarketSnapshot }) {
+function StatusBar({ snapshot, mode }: { snapshot: MarketSnapshot; mode: TradeMode }) {
   const { t } = useI18n()
   const online = snapshot.status === 'open'
   return (
@@ -132,12 +155,14 @@ function StatusBar({ snapshot }: { snapshot: MarketSnapshot }) {
         <span className={cn('size-1.5 rounded-full', online ? 'bg-up' : 'animate-pulse bg-gold')} aria-hidden="true" />
         {online ? t('连接稳定', 'Connected') : snapshot.status === 'reconnecting' ? t('重新连接中', 'Reconnecting') : t('连接中', 'Connecting')}
       </span>
+      <span className="shrink-0 text-white/40">{t('行情来源：OKX', 'Data: OKX')}</span>
       {MARKET_LIST.map((m) => {
         const tk = snapshot.tickers[m.symbol]
         return (
-          <Link key={m.symbol} href={`/trade/${m.symbol}`} className="flex shrink-0 gap-2 tabular-nums hover:text-white">
+          <Link key={m.symbol} href={tradeHref(mode, m.symbol)} className="flex shrink-0 gap-2 tabular-nums hover:text-white">
             <span className="text-white/80">
               {m.base}/{m.quote}
+              {mode === 'swap' && ` ${t('永续', 'Perp')}`}
             </span>
             <span className="text-white/60">{formatNumber(tk?.last, m.priceDp)}</span>
             <span className={(tk?.changePct ?? 0) >= 0 ? 'text-up' : 'text-down'}>{formatSigned(tk?.changePct, 2, '%')}</span>
@@ -151,11 +176,11 @@ function StatusBar({ snapshot }: { snapshot: MarketSnapshot }) {
   )
 }
 
-function Terminal({ symbol }: { symbol: MarketSymbol }) {
+function Terminal({ symbol, mode }: { symbol: MarketSymbol; mode: TradeMode }) {
   const market = MARKETS[symbol]
   const [interval, setChartInterval] = useState<Interval>('15m')
   const [leverage, setLeverage] = useState<number | null>(null)
-  const snapshot = useBinanceMarket(symbol, interval)
+  const snapshot = useOkxMarket(symbol, interval, mode)
 
   return (
     <div className="flex min-h-dvh flex-col bg-background font-sans text-foreground">
@@ -165,30 +190,34 @@ function Terminal({ symbol }: { symbol: MarketSymbol }) {
           {market.base}/{market.quote}
         </h1>
         <div className="lg:col-span-2">
-          <MarketHeader market={market} snapshot={snapshot} leverage={leverage} />
+          <MarketHeader market={market} mode={mode} snapshot={snapshot} leverage={leverage} />
         </div>
-        <ChartPanel market={market} snapshot={snapshot} interval={interval} onIntervalChange={setChartInterval} />
+        <ChartPanel market={market} mode={mode} snapshot={snapshot} interval={interval} onIntervalChange={setChartInterval} />
         <div className="h-[560px] lg:h-auto">
           <OrderBook market={market} snapshot={snapshot} />
         </div>
         <div className="lg:col-start-3 lg:row-span-2 lg:row-start-1">
-          <OrderForm market={market} snapshot={snapshot} leverage={leverage} onLeverageChange={setLeverage} />
+          <OrderForm market={market} snapshot={snapshot} leverage={leverage} onLeverageChange={setLeverage} isPerpetual={mode === 'swap'} />
         </div>
         <div className="lg:col-span-2">
           <PositionsPanel />
         </div>
         <AccountPanel />
       </main>
-      <StatusBar snapshot={snapshot} />
+      <StatusBar snapshot={snapshot} mode={mode} />
     </div>
   )
 }
 
-export function TradeTerminal({ symbol }: { symbol: MarketSymbol }) {
+export function TradeTerminal({ symbol, mode = 'spot' }: { symbol: MarketSymbol; mode?: TradeMode }) {
   const { base, quote } = MARKETS[symbol]
+  const title =
+    mode === 'swap'
+      ? { zh: `${base}/${quote} 永续合约 | OXXX`, en: `${base}/${quote} Perpetual | OXXX` }
+      : { zh: `${base}/${quote} 现货&杠杆交易 | OXXX`, en: `${base}/${quote} Spot & Margin | OXXX` }
   return (
-    <I18nProvider title={{ zh: `${base}/${quote} 现货&杠杆交易 | OXXX`, en: `${base}/${quote} Spot & Margin | OXXX` }}>
-      <Terminal symbol={symbol} />
+    <I18nProvider title={title}>
+      <Terminal symbol={symbol} mode={mode} />
     </I18nProvider>
   )
 }
