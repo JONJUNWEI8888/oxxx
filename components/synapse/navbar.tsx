@@ -82,7 +82,7 @@ export function Navbar({ visible }: { visible: boolean }) {
 
         <div className="flex shrink-0 items-center gap-2">
           <a
-            href="#"
+            href="/vip"
             className="hidden h-12 items-center gap-2 rounded-full border border-gold/60 px-5 text-[15px] text-gold transition-all hover:border-gold hover:bg-gold/10 hover:shadow-[0_0_24px_-6px_var(--color-gold)] xl:flex"
           >
             <Crown className="size-4" aria-hidden="true" />

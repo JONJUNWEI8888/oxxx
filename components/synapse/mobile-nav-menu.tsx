@@ -78,7 +78,7 @@ export function MobileNavMenu({ open, onClose }: { open: boolean; onClose: () =>
           </ul>
           <div className="mt-2 flex gap-2 border-t border-white/10 p-2 pt-4">
             <a
-              href="#"
+              href="/vip"
               className="flex h-11 flex-1 items-center justify-center rounded-full border border-gold/60 text-[14px] text-gold"
             >
               {t('VIP礼遇通道', 'VIP Access')}

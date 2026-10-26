@@ -485,3 +485,22 @@ html.lenis body {
 @media (prefers-reduced-motion: reduce) {
   .phone-halo { animation: none; }
 }
+
+.vip-title {
+  background: linear-gradient(
+    180deg,
+    var(--color-foreground) 0%,
+    var(--color-gold-light) 55%,
+    var(--color-gold) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px color-mix(in oklab, var(--color-gold) 35%, transparent));
+}
+
+.vip-vignette {
+  background:
+    radial-gradient(ellipse at center, transparent 30%, color-mix(in oklab, var(--color-background) 85%, transparent) 78%),
+    linear-gradient(to bottom, var(--color-background) 0%, transparent 18%, transparent 82%, var(--color-background) 100%);
+}
