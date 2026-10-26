@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { Bi } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n'
 import { ParticleCoin } from './particle-coin'
+import { CoinOrbit } from '@/components/coin-orbit'
 import { PhoneShowcase } from './phone-showcase'
 import { ValueOrb } from './value-orb'
 
@@ -305,7 +306,7 @@ export function Services() {
 
 const NEWS: { tag: Bi; title: Bi; excerpt: Bi; cover: string; headline: Bi; tone: 'dark' | 'pink' }[] = [
   {
-    tag: { zh: '品牌动态', en: 'Brand News' },
+    tag: { zh: '品牌动���', en: 'Brand News' },
     title: { zh: '加密友好型证券平台 OXXX 正式上线，一账户打通美股与加密', en: 'OXXX launches: one account for US stocks and crypto' },
     excerpt: {
       zh: 'OXXX 正式上线，公测两月累计收到 788 条产品反馈，完成了一轮以真实用户为核心���打磨��',
@@ -414,13 +415,7 @@ export function JoinCta() {
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </motion.div>
-        <Image
-          src="/images/login-coins.png"
-          alt=""
-          width={1024}
-          height={1024}
-          className="h-auto w-full max-w-sm object-contain mix-blend-lighten"
-        />
+        <CoinOrbit className="max-w-md" />
       </div>
     </section>
   )
