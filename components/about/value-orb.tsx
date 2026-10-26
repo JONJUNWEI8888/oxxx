@@ -217,7 +217,7 @@ export function ValueOrb({ src, ringTilt = -18, delay = 0 }: { src: string; ring
       <canvas ref={backRef} aria-hidden="true" className="pointer-events-none absolute inset-0 size-full" />
       <div ref={iconRef} className="value-tilt absolute -inset-[8%]">
         <div className="value-spin relative size-full">
-          <Image src={src} alt="" width={512} height={512} className="value-mask size-full object-contain" />
+          <Image src={src} alt="" width={1408} height={768} unoptimized className="value-mask size-full object-contain" />
           <div
             aria-hidden="true"
             className="value-shine pointer-events-none absolute inset-0"

@@ -204,9 +204,9 @@ export function BrandStory() {
 }
 
 const VALUES: { title: Bi; image: string }[] = [
-  { title: { zh: '以用户场景为中心', en: 'User scenarios first' }, image: '/images/value-user.png' },
-  { title: { zh: '以资本效率为核心', en: 'Capital efficiency at the core' }, image: '/images/value-efficiency.png' },
-  { title: { zh: '以安全风控为底线', en: 'Security as the baseline' }, image: '/images/value-security.png' },
+  { title: { zh: '以用户场景为中心', en: 'User scenarios first' }, image: '/images/value-user-clear.png' },
+  { title: { zh: '以资本效率为核心', en: 'Capital efficiency at the core' }, image: '/images/value-efficiency-clear.png' },
+  { title: { zh: '以安全风控为底线', en: 'Security as the baseline' }, image: '/images/value-security-clear.png' },
 ]
 
 export function Values() {
