@@ -275,12 +275,17 @@ export function Services() {
             hint={t('拖动旋转手机', 'Drag to rotate')}
           />
         </motion.div>
-        <ul className="flex flex-1 flex-col">
+        <ul className="flex flex-1 flex-col border-t border-line">
           {SERVICES.map((s, i) => (
-            <motion.li key={s.title.en} {...reveal} transition={{ ...reveal.transition, delay: i * 0.1 }}>
+            <motion.li
+              key={s.title.en}
+              {...reveal}
+              transition={{ ...reveal.transition, delay: i * 0.1 }}
+              className="flex lg:flex-1"
+            >
               <Link
                 href={s.href}
-                className="group flex items-end gap-6 border-b border-line py-8 first:pt-0 focus-visible:outline-none"
+                className="group flex flex-1 items-center gap-6 border-b border-line py-8 focus-visible:outline-none"
               >
                 <div className="flex flex-1 flex-col gap-3">
                   <h3 className="font-display text-2xl tracking-wide text-gold md:text-3xl">{t(s.title.zh, s.title.en)}</h3>
