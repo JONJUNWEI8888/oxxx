@@ -2,10 +2,10 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Download, Eye, EyeOff, KeyRound } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useId, useState } from 'react'
 import { LanguageSwitcher } from '@/components/synapse/language-switcher'
+import DitherVeil from '@/components/react-bits/dither-veil'
 import { I18nProvider, useI18n } from '@/lib/i18n'
 
 type Method = 'email' | 'phone'
@@ -64,16 +64,10 @@ export function WelcomePanel() {
         initial={{ opacity: 0, scale: 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut' }}
-        className="relative mt-auto flex justify-center"
+        className="relative -mx-10 mt-10 min-h-0 flex-1 xl:-mx-16"
+        aria-hidden="true"
       >
-        <Image
-          src="/images/login-coins.png"
-          alt=""
-          width={1024}
-          height={1024}
-          priority
-          className="h-auto w-full max-w-[560px] translate-y-10 object-contain mix-blend-lighten"
-        />
+        <DitherVeil src="https://images.unsplash.com/photo-1737071371043-761e02b1ef95?q=80&w=1400&auto=format&fit=crop" />
       </motion.div>
     </section>
   )
