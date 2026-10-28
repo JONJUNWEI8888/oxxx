@@ -1,7 +1,14 @@
 'use client'
 
+import { Space_Grotesk } from 'next/font/google'
 import { useI18n } from '@/lib/i18n'
 import { ParticleField } from './particle-field'
+
+const wordmarkFont = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  display: 'swap',
+})
 
 type Partner = {
   name: string
@@ -15,19 +22,19 @@ const PARTNERS: Partner[] = [
     name: 'Ethereum Foundation',
     icon: { src: '/partners/ethereum.svg', className: 'h-9 w-6' },
     wordmark: 'Ethereum Foundation',
-    wordmarkClassName: 'font-sans font-semibold tracking-tight',
+    wordmarkClassName: 'font-semibold tracking-tight',
   },
   {
     name: 'Binance',
     icon: { src: '/partners/binance2.svg', className: 'size-8' },
     wordmark: 'BINANCE',
-    wordmarkClassName: 'font-sans font-bold tracking-[0.18em]',
+    wordmarkClassName: 'font-bold tracking-[0.18em]',
   },
   {
     name: 'Tether',
     icon: { src: '/partners/tether.svg', className: 'size-8' },
     wordmark: 'tether',
-    wordmarkClassName: 'font-sans font-bold tracking-tight',
+    wordmarkClassName: 'font-bold tracking-tight',
   },
   {
     name: 'AWS',
@@ -37,28 +44,28 @@ const PARTNERS: Partner[] = [
     name: 'MetaMask',
     icon: { src: '/partners/metamask.svg', className: 'size-9' },
     wordmark: 'METAMASK',
-    wordmarkClassName: 'font-sans font-bold tracking-[0.14em]',
+    wordmarkClassName: 'font-bold tracking-[0.14em]',
   },
   {
     name: 'YZi Labs',
     wordmark: 'YZi Labs',
-    wordmarkClassName: 'font-sans font-black tracking-tight',
+    wordmarkClassName: 'font-bold tracking-tight',
   },
   {
     name: 'TRON',
     wordmark: 'TRON',
-    wordmarkClassName: 'font-sans font-extrabold tracking-[0.3em]',
+    wordmarkClassName: 'font-bold tracking-[0.3em]',
   },
   {
     name: 'Solana',
     icon: { src: '/partners/solana2.svg', className: 'size-7' },
     wordmark: 'SOLANA',
-    wordmarkClassName: 'font-sans font-semibold tracking-[0.28em]',
+    wordmarkClassName: 'font-semibold tracking-[0.28em]',
   },
   {
     name: 'TOKEN2049',
     wordmark: 'TOKEN2049',
-    wordmarkClassName: 'font-sans font-bold tracking-[0.08em]',
+    wordmarkClassName: 'font-bold tracking-[0.08em]',
   },
 ]
 
@@ -81,7 +88,9 @@ function PartnerLogo({ partner }: { partner: Partner }) {
         />
       )}
       {partner.wordmark && (
-        <span className={`whitespace-nowrap text-2xl md:text-3xl ${partner.wordmarkClassName ?? ''}`}>
+        <span
+          className={`${wordmarkFont.className} whitespace-nowrap text-2xl md:text-3xl ${partner.wordmarkClassName ?? ''}`}
+        >
           {partner.wordmark}
         </span>
       )}
