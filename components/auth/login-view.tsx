@@ -2,10 +2,12 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Download, Eye, EyeOff, KeyRound } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useId, useState } from 'react'
 import { LanguageSwitcher } from '@/components/synapse/language-switcher'
-import DitherVeil from '@/components/react-bits/dither-veil'
+
+const FallingCoins = dynamic(() => import('./falling-coins').then((m) => m.FallingCoins), { ssr: false })
 import { I18nProvider, useI18n } from '@/lib/i18n'
 
 type Method = 'email' | 'phone'
@@ -44,6 +46,18 @@ export function WelcomePanel() {
   return (
     <section className="relative hidden flex-1 flex-col overflow-hidden bg-panel px-10 pt-16 lg:flex xl:px-16">
       <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2, delay: 0.2, ease: 'easeOut' }}
+        className="absolute inset-0"
+        aria-hidden="true"
+      >
+        <FallingCoins />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-panel via-panel/80 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-panel to-transparent" />
+      </motion.div>
+
+      <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -58,16 +72,6 @@ export function WelcomePanel() {
             'A crypto-friendly securities platform built for professional investors, with unified multi-market trading.',
           )}
         </p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut' }}
-        className="relative -mx-10 mt-10 min-h-0 flex-1 xl:-mx-16"
-        aria-hidden="true"
-      >
-        <DitherVeil src="https://images.unsplash.com/photo-1737071371043-761e02b1ef95?q=80&w=1400&auto=format&fit=crop" />
       </motion.div>
     </section>
   )
