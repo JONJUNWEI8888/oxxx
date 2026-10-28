@@ -5,7 +5,8 @@ import { Building2, Check, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { TopBar, WelcomePanel } from '@/components/auth/login-view'
+import { TopBar } from '@/components/auth/login-view'
+import { RegisterWelcomePanel } from '@/components/auth/register-welcome-panel'
 import { I18nProvider, useI18n } from '@/lib/i18n'
 
 type AccountType = 'personal' | 'business'
@@ -147,7 +148,7 @@ export function RegisterView() {
       <div className="flex min-h-dvh flex-col bg-background text-foreground">
         <TopBar />
         <main className="flex flex-1">
-          <WelcomePanel />
+          <RegisterWelcomePanel />
           <section className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
             <RegisterForm />
           </section>
