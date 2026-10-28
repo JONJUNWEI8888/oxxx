@@ -20,6 +20,22 @@
 
   --animate-marquee: marquee 45s linear infinite;
   --animate-shimmer: shimmer 7s ease-in-out infinite;
+  --animate-scan: scan 6s ease-in-out infinite;
+
+  @keyframes scan {
+    0% {
+      transform: translateX(-30vw);
+      opacity: 0;
+    }
+    15%,
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(110vw);
+      opacity: 0;
+    }
+  }
 
   @keyframes marquee {
     from {
@@ -205,6 +221,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
+  .animate-scan,
   .animate-shimmer {
     animation: none;
   }
