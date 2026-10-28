@@ -67,7 +67,7 @@ export function WelcomePanel() {
         className="relative -mx-10 mt-10 min-h-0 flex-1 xl:-mx-16"
         aria-hidden="true"
       >
-        <DitherVeil src="https://images.unsplash.com/photo-1737071371043-761e02b1ef95?q=80&w=1400&auto=format&fit=crop" />
+        <DitherVeil inkColor="#0d0b0c" src="https://images.unsplash.com/photo-1737071371043-761e02b1ef95?q=80&w=1400&auto=format&fit=crop" />
       </motion.div>
     </section>
   )
