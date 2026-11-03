@@ -23,16 +23,16 @@ const LEFT_TILES: Tile[] = [
   {
     src: '/logos/bitcoin.svg',
     label: { zh: '比特币', en: 'Bitcoin' },
-    size: 'size-16 md:size-20',
-    delay: 1.8,
+    size: 'size-16 lg:size-20',
+    delay: 2.7,
     travelX: 112,
     dim: true,
   },
   {
     src: '/logos/nvidia.svg',
     label: { zh: '英伟达', en: 'NVIDIA' },
-    size: 'size-20 md:size-24',
-    delay: 0.9,
+    size: 'size-20 lg:size-24',
+    delay: 1.8,
     travelX: 76,
   },
 ]
@@ -41,9 +41,16 @@ const RIGHT_TILES: Tile[] = [
   {
     icon: DollarSign,
     label: { zh: '美金', en: 'US Dollar' },
-    size: 'size-20 md:size-24',
-    delay: 0,
+    size: 'size-20 lg:size-24',
+    delay: 0.9,
     travelX: -92,
+  },
+  {
+    src: '/logos/robinhood.svg',
+    label: { zh: 'Robinhood', en: 'Robinhood' },
+    size: 'size-16 lg:size-20',
+    delay: 0,
+    travelX: -124,
   },
 ]
 
@@ -109,7 +116,9 @@ function FloatingTile({ tile }: { tile: Tile }) {
           alt=""
           width={48}
           height={48}
-          className={`size-1/2 object-contain ${tile.src.includes('nvidia') ? 'brightness-0 invert' : ''}`}
+          className={`size-1/2 object-contain ${
+            tile.src.includes('nvidia') || tile.src.includes('robinhood') ? 'brightness-0 invert' : ''
+          }`}
         />
       ) : (
         Icon && <Icon className="size-1/2 text-gold-light" strokeWidth={1.6} aria-hidden="true" />
@@ -126,7 +135,7 @@ function AnimatedShield() {
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true, amount: 0.4 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-      className="relative h-60 w-56 shrink-0 md:h-80 md:w-72"
+      className="relative h-60 w-56 shrink-0 md:h-72 md:w-64 lg:h-80 lg:w-72"
     >
       <motion.div
         aria-hidden="true"
@@ -216,13 +225,13 @@ export function Security() {
       </motion.div>
 
       <div className="mt-16 flex w-full max-w-5xl items-center justify-center gap-4 sm:gap-8 md:gap-12">
-        <div className="hidden items-center gap-6 sm:flex md:gap-10">
+        <div className="hidden items-center gap-3 sm:flex sm:gap-4 lg:gap-10">
           {LEFT_TILES.map((tile) => (
             <FloatingTile key={tile.label.en} tile={tile} />
           ))}
         </div>
         <AnimatedShield />
-        <div className="hidden items-center gap-6 sm:flex md:gap-10">
+        <div className="hidden items-center gap-3 sm:flex sm:gap-4 lg:gap-10">
           {RIGHT_TILES.map((tile) => (
             <FloatingTile key={tile.label.en} tile={tile} />
           ))}
