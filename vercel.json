@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/presale-index",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/presale-reconcile",
+      "schedule": "15 2 * * *"
+    }
+  ]
+}

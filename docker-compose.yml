@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: oxxx
+      POSTGRES_PASSWORD: oxxx
+      POSTGRES_DB: oxxx
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oxxx -d oxxx"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - oxxx_pg:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://oxxx:oxxx@postgres:5432/oxxx
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4000"
+      JWT_SECRET: dev-only-jwt-secret-change-me-32bytes
+      PII_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: DevOnly-admin-pass-12
+      ADMIN_TOTP_SECRET: JBSWY3DPEHPK3PXP
+      ADMIN_CORS_ORIGINS: http://localhost:3000
+      STORAGE_DRIVER: local
+      PUBLIC_BASE_URL: http://localhost:4000
+      CRON_SECRET: dev-cron-secret
+      PRESALE_ALERT_CHANNELS: log
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  indexer:
+    profiles: ["indexer"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://oxxx:oxxx@postgres:5432/oxxx
+      NODE_ENV: production
+      JWT_SECRET: dev-only-jwt-secret-change-me-32bytes
+      PII_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      CRON_SECRET: dev-cron-secret
+      PRESALE_ALERT_CHANNELS: log
+    command:
+      [
+        "sh",
+        "-c",
+        "cd /app/backend && ./node_modules/.bin/prisma migrate deploy --schema /app/prisma/schema.prisma && exec ./node_modules/.bin/tsx src/scripts/presale-worker.ts",
+      ]
+    restart: unless-stopped
+
+volumes:
+  oxxx_pg:

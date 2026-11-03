@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Cursor for the BSC USDT presale indexer. One row, id = bsc-usdt-presale.
+model PresaleIndexerState {
+  id               String    @id
+  startBlock       Int       @map("start_block")
+  lastScannedBlock Int       @map("last_scanned_block")
+  lastScannedHash  String    @map("last_scanned_hash")
+  syncedAt         DateTime? @map("synced_at")
+  lockOwner        String?   @map("lock_owner")
+  lockExpiresAt    DateTime? @map("lock_expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@map("presale_indexer_state")
+}
+
+/// Canonical block hashes used to find a reorg fork. Chunk ends and log blocks.
+model PresaleCheckpoint {
+  blockNumber Int      @id @map("block_number")
+  blockHash   String   @map("block_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("presale_checkpoints")
+}
+
+/// A credited USDT Transfer into the presale address. Unique per (txHash, logIndex).
+model PresaleContribution {
+  id            String   @id @default(uuid())
+  txHash        String   @map("tx_hash")
+  logIndex      Int      @map("log_index")
+  fromAddress   String   @map("from_address")
+  toAddress     String   @map("to_address")
+  amountRaw     Decimal  @map("amount_raw") @db.Decimal(78, 0)
+  blockNumber   Int      @map("block_number")
+  blockHash     String   @map("block_hash")
+  blockTime     DateTime @map("block_time")
+  confirmations Int
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([txHash, logIndex], map: "presale_contribution_tx_log")
+  @@index([fromAddress])
+  @@index([blockNumber])
+  @@index([txHash])
+  @@map("presale_contributions")
+}
+
+model PresaleReconciliation {
+  id            String   @id @default(uuid())
+  ledgerRaw     Decimal  @map("ledger_raw") @db.Decimal(78, 0)
+  openingRaw    Decimal  @map("opening_raw") @db.Decimal(78, 0)
+  closingRaw    Decimal  @map("closing_raw") @db.Decimal(78, 0)
+  chainDeltaRaw Decimal  @map("chain_delta_raw") @db.Decimal(78, 0)
+  diffRaw       Decimal  @map("diff_raw") @db.Decimal(78, 0)
+  matched       Boolean
+  blockNumber   Int      @map("block_number")
+  detail        String?
+  alerted       Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("presale_reconciliations")
+}
+
+enum UserStatus {
+  active
+  frozen
+  banned
+
+  @@map("user_status")
+}
+
+enum KycLevel {
+  basic
+  advanced
+  enhanced
+
+  @@map("kyc_level")
+}
+
+enum KycStatus {
+  pending
+  approved
+  rejected
+
+  @@map("kyc_status")
+}
+
+enum AdminRole {
+  super_admin
+  kyc_reviewer
+  support
+
+  @@map("admin_role")
+}
+
+enum AdminStatus {
+  active
+  disabled
+
+  @@map("admin_status")
+}
+
+/// Exchange end user. Email and phone are encrypted; lookup uses a blind index.
+model User {
+  id           String     @id @default(uuid())
+  emailCipher  String     @map("email_cipher")
+  emailHash    String     @unique @map("email_hash")
+  phoneCipher  String?    @map("phone_cipher")
+  phoneHash    String?    @unique @map("phone_hash")
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  lastLoginAt  DateTime?  @map("last_login_at")
+  applications KycApplication[]
+
+  @@map("users")
+}
+
+model KycApplication {
+  id             String     @id @default(uuid())
+  userId         String     @map("user_id")
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level          KycLevel
+  personalCipher String     @map("personal_cipher")
+  status         KycStatus  @default(pending)
+  reviewerId     String?    @map("reviewer_id")
+  reviewer       AdminUser? @relation(fields: [reviewerId], references: [id])
+  rejectReason   String?    @map("reject_reason")
+  submittedAt    DateTime   @default(now()) @map("submitted_at")
+  reviewedAt     DateTime?  @map("reviewed_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  documents      KycDocument[]
+
+  @@index([status, submittedAt])
+  @@index([userId])
+  @@map("kyc_applications")
+}
+
+model KycDocument {
+  id            String         @id @default(uuid())
+  applicationId String         @map("application_id")
+  application   KycApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  storageKey    String         @map("storage_key")
+  fileName      String         @map("file_name")
+  contentType   String         @map("content_type")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@map("kyc_documents")
+}
+
+model AdminUser {
+  id               String      @id @default(uuid())
+  email            String      @unique
+  passwordHash     String      @map("password_hash")
+  role             AdminRole
+  totpSecretCipher String?     @map("totp_secret_cipher")
+  totpEnabled      Boolean     @default(false) @map("totp_enabled")
+  status           AdminStatus @default(active)
+  tokenVersion     Int         @default(0) @map("token_version")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  lastLoginAt      DateTime?   @map("last_login_at")
+  refreshTokens    RefreshToken[]
+  mfaChallenges    MfaChallenge[]
+  reviews          KycApplication[]
+  auditLogs        AuditLog[]
+
+  @@map("admin_users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  adminId   String    @map("admin_id")
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([adminId])
+  @@map("admin_refresh_tokens")
+}
+
+model MfaChallenge {
+  id        String    @id @default(uuid())
+  adminId   String    @map("admin_id")
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  attempts  Int       @default(0)
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([adminId])
+  @@map("mfa_challenges")
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  key       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([key, createdAt])
+  @@map("login_attempts")
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  actorId    String?   @map("actor_id")
+  actor      AdminUser? @relation(fields: [actorId], references: [id])
+  action     String
+  targetType String?   @map("target_type")
+  targetId   String?   @map("target_id")
+  metadata   Json?
+  ip         String?
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+  @@map("audit_logs")
+}
