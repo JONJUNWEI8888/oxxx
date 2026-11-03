@@ -1,23 +1,57 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Bitcoin, Cpu, DollarSign, Landmark, type LucideIcon } from 'lucide-react'
+import Image from 'next/image'
+import { motion, useReducedMotion } from 'framer-motion'
+import { DollarSign, type LucideIcon } from 'lucide-react'
 import { type Bi, useI18n } from '@/lib/i18n'
 import { SynapseXLogo } from './logo'
 
 const SHIELD_PATH = 'M100 8 L184 38 L184 104 C184 158 148 196 100 214 C52 196 16 158 16 104 L16 38 Z'
 const SHIELD_INNER = 'M100 26 L168 50 L168 104 C168 148 140 180 100 196 C60 180 32 148 32 104 L32 50 Z'
 
-type Tile = { icon: LucideIcon; label: Bi; size: string; delay: number; dim?: boolean }
+type Tile = {
+  icon?: LucideIcon
+  src?: string
+  label: Bi
+  size: string
+  delay: number
+  travelX: number
+  dim?: boolean
+}
 
 const LEFT_TILES: Tile[] = [
-  { icon: Bitcoin, label: { zh: '比特币', en: 'Bitcoin' }, size: 'size-16 md:size-20', delay: 0, dim: true },
-  { icon: Cpu, label: { zh: '科技股代币', en: 'Tech Stock Tokens' }, size: 'size-20 md:size-24', delay: 0.6 },
+  {
+    src: '/logos/bitcoin.svg',
+    label: { zh: '比特币', en: 'Bitcoin' },
+    size: 'size-16 lg:size-20',
+    delay: 2.7,
+    travelX: 112,
+    dim: true,
+  },
+  {
+    src: '/logos/nvidia.svg',
+    label: { zh: '英伟达', en: 'NVIDIA' },
+    size: 'size-20 lg:size-24',
+    delay: 1.8,
+    travelX: 76,
+  },
 ]
 
 const RIGHT_TILES: Tile[] = [
-  { icon: DollarSign, label: { zh: '稳定币', en: 'Stablecoins' }, size: 'size-20 md:size-24', delay: 0.3 },
-  { icon: Landmark, label: { zh: '美股资产', en: 'US Equities' }, size: 'size-16 md:size-20', delay: 0.9, dim: true },
+  {
+    icon: DollarSign,
+    label: { zh: '美金', en: 'US Dollar' },
+    size: 'size-20 lg:size-24',
+    delay: 0.9,
+    travelX: -92,
+  },
+  {
+    src: '/logos/robinhood.svg',
+    label: { zh: 'Robinhood', en: 'Robinhood' },
+    size: 'size-16 lg:size-20',
+    delay: 0,
+    travelX: -124,
+  },
 ]
 
 const FEATURES = [
@@ -49,16 +83,46 @@ const FEATURES = [
 
 function FloatingTile({ tile }: { tile: Tile }) {
   const { t } = useI18n()
+  const reduceMotion = useReducedMotion()
   const Icon = tile.icon
+
   return (
     <motion.div
-      animate={{ y: [0, -8, 0] }}
-      transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: tile.delay }}
+      animate={
+        reduceMotion
+          ? undefined
+          : {
+              x: [0, tile.travelX, tile.travelX, 0],
+              y: [0, -8, -8, 0],
+              opacity: [1, 0, 0, 1],
+              scale: [1, 0.72, 0.72, 1],
+            }
+      }
+      transition={{
+        duration: 1.55,
+        repeat: Infinity,
+        repeatDelay: 3.2,
+        delay: tile.delay,
+        ease: 'easeInOut',
+        times: [0, 0.42, 0.58, 1],
+      }}
       className={`${tile.size} flex shrink-0 items-center justify-center rounded-3xl border bg-gradient-to-br from-white/10 to-white/[0.02] shadow-[0_0_30px_-8px_var(--color-gold)] ${
         tile.dim ? 'border-gold/20 opacity-60' : 'border-gold/40'
       }`}
     >
-      <Icon className="size-1/2 text-gold-light" strokeWidth={1.6} aria-hidden="true" />
+      {tile.src ? (
+        <Image
+          src={tile.src}
+          alt=""
+          width={48}
+          height={48}
+          className={`size-1/2 object-contain ${
+            tile.src.includes('nvidia') || tile.src.includes('robinhood') ? 'brightness-0 invert' : ''
+          }`}
+        />
+      ) : (
+        Icon && <Icon className="size-1/2 text-gold-light" strokeWidth={1.6} aria-hidden="true" />
+      )}
       <span className="sr-only">{t(tile.label)}</span>
     </motion.div>
   )
@@ -71,7 +135,7 @@ function AnimatedShield() {
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true, amount: 0.4 }}
       transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-      className="relative h-60 w-56 shrink-0 md:h-80 md:w-72"
+      className="relative h-60 w-56 shrink-0 md:h-72 md:w-64 lg:h-80 lg:w-72"
     >
       <motion.div
         aria-hidden="true"
@@ -161,13 +225,13 @@ export function Security() {
       </motion.div>
 
       <div className="mt-16 flex w-full max-w-5xl items-center justify-center gap-4 sm:gap-8 md:gap-12">
-        <div className="hidden items-center gap-6 sm:flex md:gap-10">
+        <div className="hidden items-center gap-3 sm:flex sm:gap-4 lg:gap-10">
           {LEFT_TILES.map((tile) => (
             <FloatingTile key={tile.label.en} tile={tile} />
           ))}
         </div>
         <AnimatedShield />
-        <div className="hidden items-center gap-6 sm:flex md:gap-10">
+        <div className="hidden items-center gap-3 sm:flex sm:gap-4 lg:gap-10">
           {RIGHT_TILES.map((tile) => (
             <FloatingTile key={tile.label.en} tile={tile} />
           ))}
