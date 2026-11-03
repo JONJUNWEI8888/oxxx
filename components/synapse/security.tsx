@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
-import { DollarSign, type LucideIcon } from 'lucide-react'
+import { type LucideIcon } from 'lucide-react'
 import { type Bi, useI18n } from '@/lib/i18n'
 import { SynapseXLogo } from './logo'
 
@@ -12,6 +12,7 @@ const SHIELD_INNER = 'M100 26 L168 50 L168 104 C168 148 140 180 100 196 C60 180 
 type Tile = {
   icon?: LucideIcon
   src?: string
+  maskColor?: string
   label: Bi
   size: string
   delay: number
@@ -30,6 +31,7 @@ const LEFT_TILES: Tile[] = [
   },
   {
     src: '/logos/nvidia.svg',
+    maskColor: '#76B900',
     label: { zh: '英伟达', en: 'NVIDIA' },
     size: 'size-20 lg:size-24',
     delay: 1.8,
@@ -39,14 +41,15 @@ const LEFT_TILES: Tile[] = [
 
 const RIGHT_TILES: Tile[] = [
   {
-    icon: DollarSign,
-    label: { zh: '美金', en: 'US Dollar' },
+    src: '/logos/tether.svg',
+    label: { zh: 'USDT', en: 'USDT' },
     size: 'size-20 lg:size-24',
     delay: 0.9,
     travelX: -92,
   },
   {
     src: '/logos/robinhood.svg',
+    maskColor: '#00C805',
     label: { zh: 'Robinhood', en: 'Robinhood' },
     size: 'size-16 lg:size-20',
     delay: 0,
@@ -111,15 +114,31 @@ function FloatingTile({ tile }: { tile: Tile }) {
       }`}
     >
       {tile.src ? (
-        <Image
-          src={tile.src}
-          alt=""
-          width={48}
-          height={48}
-          className={`size-1/2 object-contain ${
-            tile.src.includes('nvidia') || tile.src.includes('robinhood') ? 'brightness-0 invert' : ''
-          }`}
-        />
+        tile.maskColor ? (
+          <span
+            aria-hidden="true"
+            className="size-1/2"
+            style={{
+              backgroundColor: tile.maskColor,
+              maskImage: `url(${tile.src})`,
+              maskPosition: 'center',
+              maskRepeat: 'no-repeat',
+              maskSize: 'contain',
+              WebkitMaskImage: `url(${tile.src})`,
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskSize: 'contain',
+            }}
+          />
+        ) : (
+          <Image
+            src={tile.src}
+            alt=""
+            width={48}
+            height={48}
+            className="size-1/2 object-contain"
+          />
+        )
       ) : (
         Icon && <Icon className="size-1/2 text-gold-light" strokeWidth={1.6} aria-hidden="true" />
       )}
