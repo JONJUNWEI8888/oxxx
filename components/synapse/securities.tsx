@@ -3,7 +3,7 @@
 import { MotionConfig, motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { type Bi, useI18n } from '@/lib/i18n'
-import { SecuritiesDevices } from './securities-devices'
+import Image from 'next/image'
 
 const FEATURES: Bi[] = [
   { zh: '一站式交易美股、港股、ETF 与美股期权', en: 'Trade US stocks, HK stocks, ETFs and US options in one place' },
@@ -85,9 +85,22 @@ export function Securities() {
             </motion.div>
           </motion.div>
 
-          <div className="w-full md:w-1/2">
-            <SecuritiesDevices />
-          </div>
+          <motion.div
+            className="w-full md:w-1/2"
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Image
+              src="/images/securities-devices.jpg"
+              alt={t('oxxx.io 证券交易桌面端与手机端界面', 'oxxx.io securities trading on desktop and mobile')}
+              width={2565}
+              height={1456}
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="h-auto w-full scale-110 [mask-image:radial-gradient(ellipse_70%_65%_at_50%_50%,black_55%,transparent_100%)]"
+            />
+          </motion.div>
         </div>
       </section>
     </MotionConfig>
