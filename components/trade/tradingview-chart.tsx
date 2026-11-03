@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useState } from 'react'
+import { useCspNonce } from '@/components/csp-nonce'
 import { useI18n } from '@/lib/i18n'
 import { CHART_COLORS, type Interval, type Market, type TradeMode } from '@/lib/markets'
 
@@ -30,13 +31,14 @@ const GRID = 'rgba(255,255,255,0.04)'
 
 let scriptPromise: Promise<TradingViewGlobal> | null = null
 
-function loadTradingView() {
+function loadTradingView(nonce?: string) {
   if (window.TradingView) return Promise.resolve(window.TradingView)
   if (!scriptPromise) {
     scriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script')
       script.src = TV_SCRIPT_SRC
       script.async = true
+      if (nonce) script.nonce = nonce
       script.onload = () => (window.TradingView ? resolve(window.TradingView) : reject(new Error('TradingView unavailable')))
       script.onerror = () => {
         scriptPromise = null
@@ -51,6 +53,7 @@ function loadTradingView() {
 
 export function TradingViewChart({ market, interval, mode }: { market: Market; interval: Interval; mode: TradeMode }) {
   const { t, lang } = useI18n()
+  const nonce = useCspNonce()
   const containerId = `tv-${useId().replace(/:/g, '')}`
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
@@ -59,7 +62,7 @@ export function TradingViewChart({ market, interval, mode }: { market: Market; i
     let widget: TradingViewWidget | null = null
     setStatus('loading')
 
-    loadTradingView()
+    loadTradingView(nonce)
       .then((TradingView) => {
         const container = document.getElementById(containerId)
         if (cancelled || !container) return
@@ -115,7 +118,7 @@ export function TradingViewChart({ market, interval, mode }: { market: Market; i
       const container = document.getElementById(containerId)
       if (container) container.innerHTML = ''
     }
-  }, [containerId, market.symbol, interval, lang, mode])
+  }, [containerId, market.symbol, interval, lang, mode, nonce])
 
   return (
     <div className="relative size-full">

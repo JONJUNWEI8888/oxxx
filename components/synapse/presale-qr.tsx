@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { QRCodeSVG } from 'qrcode.react'
 import { useState } from 'react'
 import { useI18n } from '@/lib/i18n'
 import { PRESALE } from '@/lib/presale'
@@ -33,12 +33,16 @@ export function PresaleQr() {
           </p>
         </div>
         <div className="self-start overflow-hidden rounded-lg bg-white p-2 ring-1 ring-gold ring-offset-4 ring-offset-gold-deep">
-          <Image
-            src="/images/usdt-qr.jpg"
-            alt={t('OX 私募 USDT (BSC) 收款二维码', 'OX presale USDT (BSC) payment QR code')}
-            width={160}
-            height={160}
+          <QRCodeSVG
+            value={PRESALE.address}
+            size={160}
+            level="H"
+            marginSize={2}
+            bgColor="#ffffff"
+            fgColor="#111111"
+            title={t('OX 私募 USDT (BSC) 收款二维码', 'OX presale USDT (BSC) payment QR code')}
             className="size-36 sm:size-40"
+            role="img"
           />
         </div>
       </div>

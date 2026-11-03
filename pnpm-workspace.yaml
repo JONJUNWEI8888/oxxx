@@ -3,3 +3,15 @@ pmOnFail: ignore
 minimumReleaseAgeExclude:
   - '@next/*'
   - next
+  - ip-address@10.7.6
+
+# Patch transitive high advisories without changing direct dependency ranges.
+# postcss 8.5.32 pulls a fixed nanoid and source-map-js for Next's own copy.
+overrides:
+  "postcss@<8.5.32": "8.5.32"
+  "nanoid@>=3.0.0 <3.3.18": "3.3.18"
+  "source-map-js@<1.2.2": "1.2.2"
+  "browserslist@<=4.28.6": "4.28.7"
+  "brace-expansion@>=5.0.0 <5.0.12": "5.0.12"
+  "ip-address@<10.7.6": "10.7.6"
+  "baseline-browser-mapping@<2.11.0": "2.11.0"
