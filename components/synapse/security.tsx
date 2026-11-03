@@ -111,15 +111,30 @@ function FloatingTile({ tile }: { tile: Tile }) {
       }`}
     >
       {tile.src ? (
-        <Image
-          src={tile.src}
-          alt=""
-          width={48}
-          height={48}
-          className={`size-1/2 object-contain ${
-            tile.src.includes('nvidia') || tile.src.includes('robinhood') ? 'brightness-0 invert' : ''
-          }`}
-        />
+        tile.src.includes('robinhood') ? (
+          <span
+            aria-hidden="true"
+            className="size-1/2 bg-[#00C805]"
+            style={{
+              maskImage: `url(${tile.src})`,
+              maskPosition: 'center',
+              maskRepeat: 'no-repeat',
+              maskSize: 'contain',
+              WebkitMaskImage: `url(${tile.src})`,
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskSize: 'contain',
+            }}
+          />
+        ) : (
+          <Image
+            src={tile.src}
+            alt=""
+            width={48}
+            height={48}
+            className={`size-1/2 object-contain ${tile.src.includes('nvidia') ? 'brightness-0 invert' : ''}`}
+          />
+        )
       ) : (
         Icon && <Icon className="size-1/2 text-gold-light" strokeWidth={1.6} aria-hidden="true" />
       )}
