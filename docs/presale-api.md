@@ -98,6 +98,6 @@ Errors: `503` `{ "error": "Unable to read on-chain balance", "code": "ledger_una
 
 - Transfers that do not yet have 15 confirmations.
 - Transfers before `PRESALE_INDEX_START_BLOCK` (or before the safe head, if that variable was unset on the first run).
-- USDT sent **out** of the receiving address. The ledger is inbound subscriptions only. The daily reconciliation job compares the ledger with the on-chain balance change and alerts when they diverge (a sweep will alert).
+- USDT sent **out** of the receiving address does not reduce `raised`. Those transfers are stored as `outbound` and subtracted only in the daily reconciliation, so a sweep of the address still matches the on-chain balance change.
 
 Admin listing and CSV export live on the admin service (`GET /api/v1/presale/subscriptions`), not on this public route.

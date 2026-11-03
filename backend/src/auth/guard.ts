@@ -38,14 +38,3 @@ async function authenticate(request: FastifyRequest, config: AppConfig) {
   return { id: admin.id, email: admin.email, role: admin.role }
 }
 
-export async function requireSetupToken(request: FastifyRequest, config: AppConfig) {
-  const header = request.headers.authorization
-  if (!header || !/^bearer\s+/i.test(header)) throw new AppError(401, 'unauthorized', 'Missing setup token')
-  try {
-    const claims = await verifyToken(header.replace(/^bearer\s+/i, ''), config)
-    if (claims.scope !== 'totp_setup') throw new Error('scope')
-    return claims
-  } catch {
-    throw new AppError(401, 'unauthorized', 'Invalid setup token')
-  }
-}

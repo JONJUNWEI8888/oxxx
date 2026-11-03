@@ -6,12 +6,13 @@ import { LogAlertChannel, WebhookAlertChannel, createAlertChannel } from './aler
 import { clearPresaleCache, withCache } from './cache'
 import { CONFIRMATION_DEPTH, TRANSFER_TOPIC } from './constants'
 import { authorizeCron } from './cron-auth'
+import { safeCronError } from './cron-http'
 import { FakeRpc, hashOf } from './fake-rpc'
 import { uint256Hex, padAddressTopic } from './hex'
 import { defaultIndexConfig, runPresaleIndexBatch } from './indexer'
 import { MemoryPresaleRepo } from './memory-repo'
 import { presaleAddressGet, presaleGet } from './public-http'
-import { createRateLimiter } from './rate-limit'
+import { createRateLimiter, createRateLimiterFromEnv } from './rate-limit'
 import { runPresaleReconciliation } from './reconcile'
 import { HttpRpcClient } from './rpc'
 import { buildPresaleResponse } from './snapshot'
@@ -292,6 +293,45 @@ describe('reconciliation', () => {
     expect(alerts).toEqual(['sent'])
     expect(repo.reconciliations).toHaveLength(2)
   })
+
+  it('nets outbound transfers into the balance comparison without counting them as raised', async () => {
+    const chain = new FakeRpc()
+    chain.seed(0, 100)
+    chain.head = 100
+    chain.logs.push(
+      transfer(chain, { blockNumber: 80, logIndex: 0, txHash: `0x${'a'.repeat(64)}`, from: ALICE, amount: 10n * UNIT }),
+      {
+        address: PRESALE.usdtContract.toLowerCase(),
+        topics: [
+          TRANSFER_TOPIC,
+          padAddressTopic(PRESALE.address),
+          padAddressTopic('0x3333333333333333333333333333333333333333'),
+        ],
+        data: uint256Hex(3n * UNIT),
+        blockNumber: 82,
+        blockHash: chain.blocks.get(82)!.hash,
+        transactionHash: `0x${'9'.repeat(64)}`,
+        logIndex: 1,
+        removed: false,
+      },
+    )
+    const repo = new MemoryPresaleRepo()
+    await runPresaleIndexBatch({ repo, rpc: chain, config: config() })
+    expect(repo.contributions.map((row) => row.direction).sort()).toEqual(['inbound', 'outbound'])
+    expect((await repo.aggregate()).totalRaw).toBe(10n * UNIT)
+    const cursor = (await repo.getState())!.lastScannedBlock
+    chain.setBalance(69, PRESALE.address, 0n)
+    chain.setBalance(cursor, PRESALE.address, 7n * UNIT)
+    const result = await runPresaleReconciliation({
+      repo,
+      rpc: chain,
+      receivingAddress: PRESALE.address,
+      usdtContract: PRESALE.usdtContract,
+      alerts: { name: 'test', send: async () => { throw new Error('should match') } },
+    })
+    expect(result.matched).toBe(true)
+    expect(result.ledgerRaw).toBe(7n * UNIT)
+  })
 })
 
 describe('alerts', () => {
@@ -312,6 +352,11 @@ describe('alerts', () => {
 })
 
 describe('cache and rate limit', () => {
+  it('refuses an in-memory limiter in production when Redis is not configured', () => {
+    expect(() => createRateLimiterFromEnv({ NODE_ENV: 'production' }, { limit: 2, windowMs: 1000 })).toThrow(/UPSTASH/)
+    expect(createRateLimiterFromEnv({ NODE_ENV: 'test' }, { limit: 2, windowMs: 1000 })).toBeTruthy()
+  })
+
   it('serves a fresh value without calling the loader again', async () => {
     clearPresaleCache()
     let now = 1_000
@@ -342,16 +387,16 @@ describe('cache and rate limit', () => {
     expect(calls).toBe(1)
   })
 
-  it('throttles a key inside the window', () => {
+  it('throttles a key inside the window', async () => {
     let now = 10_000
     const limiter = createRateLimiter({ limit: 2, windowMs: 1_000, now: () => now })
-    expect(limiter.check('ip').allowed).toBe(true)
-    expect(limiter.check('ip').allowed).toBe(true)
-    const blocked = limiter.check('ip')
+    expect((await limiter.check('ip')).allowed).toBe(true)
+    expect((await limiter.check('ip')).allowed).toBe(true)
+    const blocked = await limiter.check('ip')
     expect(blocked.allowed).toBe(false)
     expect(blocked.retryAfterSec).toBeGreaterThan(0)
     now += 1_001
-    expect(limiter.check('ip').allowed).toBe(true)
+    expect((await limiter.check('ip')).allowed).toBe(true)
   })
 })
 
@@ -375,6 +420,7 @@ describe('public presale http', () => {
       blockHash: `0x${'ab'.repeat(32)}`,
       blockTime: new Date('2026-01-01T00:00:00.000Z'),
       confirmations: 40,
+      direction: 'inbound',
     })
     clearPresaleCache()
     const limiter = createRateLimiter({ limit: 1, windowMs: 60_000 })
@@ -424,6 +470,8 @@ describe('cron auth', () => {
     expect(authorizeCron(request, { NODE_ENV: 'production', CRON_SECRET: 'secret-1' })).toBe(true)
     expect(authorizeCron(request, { NODE_ENV: 'production', CRON_SECRET: 'other' })).toBe(false)
     expect(authorizeCron(new Request('http://local'), { NODE_ENV: 'production' })).toBe(false)
-    expect(authorizeCron(new Request('http://local'), { NODE_ENV: 'development' })).toBe(true)
+    expect(authorizeCron(new Request('http://local'), { NODE_ENV: 'development' })).toBe(false)
+    expect(safeCronError()).toBe('upstream request failed')
+    expect(safeCronError()).not.toContain('http')
   })
 })

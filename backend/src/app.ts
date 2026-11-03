@@ -20,7 +20,7 @@ import './types'
 export async function buildApp(config: AppConfig) {
   const app = Fastify({
     logger: config.NODE_ENV === 'production',
-    trustProxy: true,
+    trustProxy: (_address: string, hop: number) => hop < config.TRUST_PROXY_HOPS,
     bodyLimit: 10 * 1024 * 1024,
   }).withTypeProvider<ZodTypeProvider>()
 

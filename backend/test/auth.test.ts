@@ -68,29 +68,102 @@ describe('admin auth', () => {
     expect(anon.statusCode).toBe(401)
   })
 
-  it('requires TOTP enrollment before the first privileged session', async () => {
+  it('enrolls a new admin only through a one-time invite', async () => {
     const app = await appPromise
-    await createAdmin('super_admin', 'new@example.com', { totpEnabled: false })
-    const start = await app.inject({
+    await createAdmin('super_admin', 'root@example.com')
+    const token = await login(app, 'root@example.com')
+    const invited = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/invites',
+      headers: auth(token),
+      payload: { email: 'new@example.com', role: 'support' },
+    })
+    expect(invited.statusCode).toBe(200)
+    const inviteToken = invited.json().token as string
+    const passwordLogin = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      payload: { email: 'new@example.com', password: PASSWORD },
+      payload: { email: 'new@example.com', password: 'whatever-password' },
     })
-    expect(start.json().status).toBe('enrollment')
-    const setup = await app.inject({
+    expect(passwordLogin.statusCode).toBe(401)
+    const started = await app.inject({
       method: 'POST',
-      url: '/api/v1/auth/totp/setup',
-      headers: auth(start.json().setupToken),
+      url: '/api/v1/auth/invites/start',
+      payload: { token: inviteToken },
     })
-    expect(setup.statusCode).toBe(200)
-    const confirm = await app.inject({
+    expect(started.statusCode).toBe(200)
+    expect(started.json().otpauthUrl).toContain('otpauth://')
+    const redeemed = await app.inject({
       method: 'POST',
-      url: '/api/v1/auth/totp/confirm',
-      headers: auth(start.json().setupToken),
-      payload: { code: totpCode() },
+      url: '/api/v1/auth/invites/redeem',
+      payload: { token: inviteToken, password: 'a-real-password-12', code: totpCode(started.json().secret) },
     })
-    expect(confirm.statusCode).toBe(200)
-    expect(confirm.json().accessToken).toEqual(expect.any(String))
+    expect(redeemed.statusCode).toBe(200)
+    const again = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/invites/redeem',
+      payload: { token: inviteToken, password: 'a-real-password-12', code: totpCode(started.json().secret) },
+    })
+    expect(again.statusCode).toBe(410)
+    const session = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'new@example.com', password: 'a-real-password-12' },
+    })
+    expect(session.json().status).toBe('mfa')
+  })
+
+  it('locks MFA per account across new challenges and rejects a reused code', async () => {
+    const app = await appPromise
+    await createAdmin('super_admin', 'root@example.com')
+    const code = totpCode()
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'root@example.com', password: PASSWORD },
+    })
+    for (let i = 0; i < 5; i += 1) {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/mfa',
+        payload: { mfaToken: first.json().mfaToken, code: '000000' },
+      })
+    }
+    const second = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'root@example.com', password: PASSWORD },
+    })
+    expect(second.statusCode).toBe(429)
+    expect(second.json().error.code).toBe('mfa_locked')
+
+    await prisma.adminUser.update({
+      where: { email: 'root@example.com' },
+      data: { mfaFailedAttempts: 0, mfaLockedUntil: null },
+    })
+    const fresh = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'root@example.com', password: PASSWORD },
+    })
+    const ok = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/mfa',
+      payload: { mfaToken: fresh.json().mfaToken, code },
+    })
+    expect(ok.statusCode).toBe(200)
+    const replayLogin = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'root@example.com', password: PASSWORD },
+    })
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/mfa',
+      payload: { mfaToken: replayLogin.json().mfaToken, code },
+    })
+    expect(replay.statusCode).toBe(401)
+    expect(replay.json().error.code).toBe('totp_replay')
   })
 
   it('blocks a disabled admin', async () => {

@@ -18,7 +18,8 @@ export type ReconcileResult = {
  * Compare the ledger sum through the cursor with the on-chain USDT balance
  * change over the same block range. Incoming transfers before `startBlock`
  * sit in the opening balance and are not treated as a mismatch.
- * Outgoing transfers are not part of the subscriber ledger, so they alert.
+ * Outbound transfers are indexed separately and subtracted, so a sweep of the
+ * receiving address still matches. `raised` itself stays inbound-only.
  */
 export async function runPresaleReconciliation(input: {
   repo: PresaleRepository

@@ -14,27 +14,19 @@
 
 ## 本地启动
 
-在仓库根目录：
+在仓库根目录把 `.env.example` 抄成 `.env`，填上 `POSTGRES_PASSWORD`、`JWT_SECRET`、`PII_ENCRYPTION_KEY`、`ADMIN_EMAIL`、`ADMIN_PASSWORD`、`ADMIN_TOTP_SECRET`、`CRON_SECRET`。这些值不会写进 compose 文件；缺任何一个，`docker compose` 会直接拒绝启动。
 
 ```bash
 docker compose up --build
 ```
 
-这会启动 Postgres（宿主机端口 **5433**）和管理 API（<http://localhost:4000>）。
+这会启动 Postgres（宿主机端口 **5433**）和管理 API（<http://localhost:4000>）。直接把端口映射到本机时 `TRUST_PROXY_HOPS` 保持 `0`，忽略客户端自带的 `X-Forwarded-For`。前面只有一层反向代理时设为 `1`。
 
 - 健康检查：`GET /health`
 - OpenAPI 界面：<http://localhost:4000/docs>
 - 规格文件：`backend/openapi.json`
 
-Compose 里的密码、JWT、加密密钥和 TOTP 种子只给本机开发用，对应 `docker-compose.yml`。暴露到任何网络之前必须换成私有值。开发超级管理员：
-
-| 项 | 值 |
-| --- | --- |
-| 邮箱 | `admin@example.com` |
-| 密码 | `DevOnly-admin-pass-12` |
-| TOTP | `JBSWY3DPEHPK3PXP`（任意 TOTP 应用，30 秒 6 位） |
-
-容器启动时会执行 `prisma migrate deploy`，再按环境变量幂等创建超级管理员。
+容器启动时会执行 `prisma migrate deploy`，再按环境变量幂等创建超级管理员。种子管理员的 TOTP 必须已经在 `ADMIN_TOTP_SECRET` 里，密码登录不能再绑定动态码。之后的管理员由超级管理员发一次性邀请链接，在链接里设置密码并绑定 TOTP。
 
 只要索引历史数据，而不是只靠定时增量：
 
@@ -64,16 +56,16 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 
 密码使用 Argon2id。登录成功后不会直接发访问令牌：
 
-1. `POST /api/v1/auth/login` 校验密码。若尚未绑定 TOTP，返回 `status: "enrollment"` 和短时 `setupToken`。
-2. `POST /api/v1/auth/totp/setup` 与 `POST /api/v1/auth/totp/confirm` 完成绑定，然后签发令牌。种子脚本创建的超级管理员已经绑定，走下一步。
-3. `POST /api/v1/auth/mfa` 提交 6 位动态码，返回 15 分钟访问令牌和 7 天刷新令牌。
-4. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 作废刷新令牌。
+1. `POST /api/v1/auth/login` 校验密码。未完成邀请注册的账号返回 `enrollment_required`，不会发绑定令牌。
+2. `POST /api/v1/auth/mfa` 提交 6 位动态码。失败次数记在账号上，重新登录不会清零；连续 5 次锁定 15 分钟。用过的时间步会记下来，同一动态码不能再用。
+3. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 作废刷新令牌。
+4. `POST /api/v1/auth/invites` 由超级管理员创建一次性邀请。`POST /api/v1/auth/invites/start` 展示 TOTP，`POST /api/v1/auth/invites/redeem` 设置密码并完成绑定。
 
-同一 IP 或邮箱在 15 分钟内密码失败 8 次会被拒绝。每个业务接口都先校验访问令牌，再按角色检查权限，没有“登录了就能调用”的接口。
+密码失败按 **IP + 账号** 计数，并随次数变慢。只知道邮箱不能把管理员从别的 IP 锁死。同一 IP 的总失败次数另有上限。客户端 IP 只取 Fastify 按 `TRUST_PROXY_HOPS` 算出的 `request.ip`，不直接读 `X-Forwarded-For`。
 
 | 权限 | super_admin | kyc_reviewer | support |
 | --- | --- | --- | --- |
-| 用户列表、详情、精确搜索 | 是 | 是 | 是 |
+| 用户列表、详情、精确搜索（support 只看打码后的邮箱和手机） | 是 | 是 | 是 |
 | 创建用户、代建 KYC、上传证件 | 是 | | |
 | 冻结 / 解冻 | 是 | | 是 |
 | 封禁 | 是 | | |
@@ -91,8 +83,9 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 | --- | --- | --- |
 | POST | `/api/v1/auth/login` | 密码 |
 | POST | `/api/v1/auth/mfa` | TOTP |
-| POST | `/api/v1/auth/totp/setup` | 绑定动态码 |
-| POST | `/api/v1/auth/totp/confirm` | 确认绑定并登录 |
+| POST | `/api/v1/auth/invites` | 超级管理员创建一次性邀请 |
+| POST | `/api/v1/auth/invites/start` | 打开邀请，拿到 TOTP |
+| POST | `/api/v1/auth/invites/redeem` | 设置密码并完成绑定 |
 | POST | `/api/v1/auth/refresh` | 刷新 |
 | POST | `/api/v1/auth/logout` | 登出 |
 | GET | `/api/v1/auth/me` | 当前管理员 |

@@ -23,10 +23,7 @@ export async function presaleIndexHttp(
     return Response.json({ ok: true, ...result })
   } catch (error) {
     console.error(error)
-    return Response.json(
-      { ok: false, error: error instanceof Error ? error.message : 'index failed' },
-      { status: 502 },
-    )
+    return Response.json({ ok: false, error: safeCronError() }, { status: 502 })
   }
 }
 
@@ -59,9 +56,11 @@ export async function presaleReconcileHttp(
     })
   } catch (error) {
     console.error(error)
-    return Response.json(
-      { ok: false, error: error instanceof Error ? error.message : 'reconcile failed' },
-      { status: 502 },
-    )
+    return Response.json({ ok: false, error: safeCronError() }, { status: 502 })
   }
+}
+
+/** Never echo RPC URLs, headers, or provider keys back to the caller. */
+export function safeCronError(): string {
+  return 'upstream request failed'
 }

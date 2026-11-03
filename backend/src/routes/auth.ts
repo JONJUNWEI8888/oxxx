@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { AdminUser } from '@prisma/client'
 import { z } from 'zod'
 import { writeAudit } from '../audit'
-import { requireAdmin, requireSetupToken } from '../auth/guard'
+import { requireAdmin, requirePermission } from '../auth/guard'
 import type { AppConfig } from '../config'
 import { decryptString, encryptString } from '../crypto/pii'
 import { hashPassword, verifyPassword } from '../crypto/password'
@@ -22,9 +22,23 @@ const mfaBody = z.object({
   code: z.string().regex(/^\d{6}$/),
 })
 
-const confirmBody = z.object({
+const inviteBody = z.object({
+  email: z.string().email().max(320),
+  role: z.enum(['super_admin', 'kyc_reviewer', 'support']),
+})
+
+const inviteTokenBody = z.object({
+  token: z.string().min(20),
+})
+
+const redeemBody = z.object({
+  token: z.string().min(20),
+  password: z.string().min(12).max(200),
   code: z.string().regex(/^\d{6}$/),
 })
+
+const MFA_MAX_FAILURES = 5
+const MFA_LOCK_MS = 15 * 60 * 1000
 
 const refreshBody = z.object({
   refreshToken: z.string().min(20),
@@ -54,12 +68,10 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
     }
     await clearFailures(ip, email)
     if (!admin.totpEnabled) {
-      const setupToken = await signToken(
-        { sub: admin.id, role: admin.role, tv: admin.tokenVersion, scope: 'totp_setup' },
-        config,
-        600,
-      )
-      return { status: 'enrollment' as const, setupToken }
+      throw new AppError(403, 'enrollment_required', 'This admin must enroll with a one-time invite link')
+    }
+    if (admin.mfaLockedUntil && admin.mfaLockedUntil.getTime() > Date.now()) {
+      throw new AppError(429, 'mfa_locked', 'Authenticator attempts are locked')
     }
     const mfaToken = newSecret()
     await prisma.mfaChallenge.create({
@@ -79,22 +91,38 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
       where: { tokenHash: sha256(body.mfaToken) },
       include: { admin: true },
     })
-    if (!challenge || challenge.expiresAt.getTime() < Date.now() || challenge.attempts >= 5) {
+    if (!challenge || challenge.expiresAt.getTime() < Date.now()) {
       throw new AppError(401, 'invalid_mfa', 'MFA challenge is invalid or expired')
+    }
+    if (challenge.admin.mfaLockedUntil && challenge.admin.mfaLockedUntil.getTime() > Date.now()) {
+      throw new AppError(429, 'mfa_locked', 'Authenticator attempts are locked')
     }
     const secret = challenge.admin.totpSecretCipher
       ? decryptString(challenge.admin.totpSecretCipher, config.piiKey)
       : ''
-    if (!secret || !verifyTotp(secret, body.code)) {
-      await prisma.mfaChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } })
+    const proof = secret ? verifyTotp(secret, body.code) : null
+    const replay = Boolean(proof && challenge.admin.totpLastStep !== null && proof.step <= challenge.admin.totpLastStep)
+    if (!proof || replay) {
+      const attempts = challenge.admin.mfaFailedAttempts + 1
+      await prisma.adminUser.update({
+        where: { id: challenge.adminId },
+        data: {
+          mfaFailedAttempts: attempts,
+          mfaLockedUntil: attempts >= MFA_MAX_FAILURES ? new Date(Date.now() + MFA_LOCK_MS) : challenge.admin.mfaLockedUntil,
+        },
+      })
       await writeAudit(prisma, {
         actorId: challenge.adminId,
-        action: 'auth.mfa.failure',
+        action: replay ? 'auth.mfa.replay' : 'auth.mfa.failure',
         ip: requestIp(request),
         userAgent: requestUserAgent(request),
       })
-      throw new AppError(401, 'invalid_mfa', 'Invalid authenticator code')
+      throw new AppError(401, replay ? 'totp_replay' : 'invalid_mfa', replay ? 'Authenticator code was already used' : 'Invalid authenticator code')
     }
+    await prisma.adminUser.update({
+      where: { id: challenge.adminId },
+      data: { totpLastStep: proof.step, mfaFailedAttempts: 0, mfaLockedUntil: null },
+    })
     await prisma.mfaChallenge.delete({ where: { id: challenge.id } })
     const session = await issueSession(config, challenge.admin)
     await writeAudit(prisma, {
@@ -106,44 +134,103 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
     return session
   })
 
-  app.post('/api/v1/auth/totp/setup', { schema: { tags: ['auth'] } }, async (request) => {
-    const claims = await requireSetupToken(request, config)
-    const prisma = getPrisma()
-    const admin = await prisma.adminUser.findUnique({ where: { id: claims.sub } })
-    if (!admin || admin.status !== 'active') throw new AppError(401, 'unauthorized', 'Admin not found')
-    if (admin.totpEnabled) throw new AppError(409, 'totp_enabled', 'Authenticator is already enabled')
-    const secret = admin.totpSecretCipher
-      ? decryptString(admin.totpSecretCipher, config.piiKey)
+  app.post(
+    '/api/v1/auth/invites',
+    {
+      preHandler: requirePermission(config, 'admins.invite'),
+      schema: { tags: ['auth'], security: [{ bearerAuth: [] }], body: inviteBody },
+    },
+    async (request) => {
+      const body = inviteBody.parse(request.body)
+      const email = body.email.trim().toLowerCase()
+      const token = newSecret()
+      const prisma = getPrisma()
+      await prisma.adminInvite.create({
+        data: {
+          email,
+          role: body.role,
+          tokenHash: sha256(token),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          createdById: request.admin?.id,
+        },
+      })
+      await writeAudit(prisma, {
+        actorId: request.admin?.id,
+        action: 'auth.invite.create',
+        targetType: 'admin_invite',
+        metadata: { emailHash: sha256(email), role: body.role },
+        ip: requestIp(request),
+        userAgent: requestUserAgent(request),
+      })
+      return { token, email, role: body.role, expiresInSec: 24 * 60 * 60 }
+    },
+  )
+
+  app.post('/api/v1/auth/invites/start', { schema: { tags: ['auth'], body: inviteTokenBody } }, async (request) => {
+    const body = inviteTokenBody.parse(request.body)
+    const invite = await loadInvite(body.token)
+    const secret = invite.totpSecretCipher
+      ? decryptString(invite.totpSecretCipher, config.piiKey)
       : generateTotpSecret()
-    if (!admin.totpSecretCipher) {
-      await prisma.adminUser.update({
-        where: { id: admin.id },
+    if (!invite.totpSecretCipher) {
+      await getPrisma().adminInvite.update({
+        where: { id: invite.id },
         data: { totpSecretCipher: encryptString(secret, config.piiKey) },
       })
     }
-    return { secret, otpauthUrl: totpUri(admin.email, secret) }
+    return { email: invite.email, role: invite.role, secret, otpauthUrl: totpUri(invite.email, secret) }
   })
 
-  app.post('/api/v1/auth/totp/confirm', { schema: { tags: ['auth'], body: confirmBody } }, async (request) => {
-    const claims = await requireSetupToken(request, config)
-    const body = confirmBody.parse(request.body)
+  app.post('/api/v1/auth/invites/redeem', { schema: { tags: ['auth'], body: redeemBody } }, async (request) => {
+    const body = redeemBody.parse(request.body)
+    const invite = await loadInvite(body.token)
+    if (!invite.totpSecretCipher) throw new AppError(400, 'totp_missing', 'Open the invite before confirming')
+    const secret = decryptString(invite.totpSecretCipher, config.piiKey)
+    const proof = verifyTotp(secret, body.code)
+    if (!proof) throw new AppError(401, 'invalid_mfa', 'Invalid authenticator code')
     const prisma = getPrisma()
-    const admin = await prisma.adminUser.findUnique({ where: { id: claims.sub } })
-    if (!admin?.totpSecretCipher) throw new AppError(400, 'totp_missing', 'Call setup before confirming')
-    const secret = decryptString(admin.totpSecretCipher, config.piiKey)
-    if (!verifyTotp(secret, body.code)) throw new AppError(401, 'invalid_mfa', 'Invalid authenticator code')
-    const updated = await prisma.adminUser.update({
-      where: { id: admin.id },
-      data: { totpEnabled: true },
+    const passwordHash = await hashPassword(body.password)
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.adminUser.findUnique({ where: { email: invite.email } })
+      if (existing?.totpEnabled) throw new AppError(409, 'admin_exists', 'This admin is already enrolled')
+      if (existing) {
+        await tx.adminUser.update({
+          where: { id: existing.id },
+          data: {
+            passwordHash,
+            role: invite.role,
+            totpSecretCipher: invite.totpSecretCipher,
+            totpEnabled: true,
+            totpLastStep: proof.step,
+            status: 'active',
+          },
+        })
+      } else {
+        await tx.adminUser.create({
+          data: {
+            email: invite.email,
+            passwordHash,
+            role: invite.role,
+            totpSecretCipher: invite.totpSecretCipher,
+            totpEnabled: true,
+            totpLastStep: proof.step,
+          },
+        })
+      }
+      const consumed = await tx.adminInvite.updateMany({
+        where: { id: invite.id, usedAt: null },
+        data: { usedAt: new Date() },
+      })
+      if (consumed.count !== 1) throw new AppError(409, 'invite_used', 'Invite was already used')
     })
-    const session = await issueSession(config, updated)
     await writeAudit(prisma, {
-      actorId: admin.id,
-      action: 'auth.totp.enrolled',
+      action: 'auth.invite.redeem',
+      targetType: 'admin_invite',
+      targetId: invite.id,
       ip: requestIp(request),
       userAgent: requestUserAgent(request),
     })
-    return session
+    return { ok: true }
   })
 
   app.post('/api/v1/auth/refresh', { schema: { tags: ['auth'], body: refreshBody } }, async (request) => {
@@ -209,14 +296,24 @@ async function issueSession(config: AppConfig, admin: AdminUser) {
   }
 }
 
+export function loginDelayMs(priorFailures: number): number {
+  if (priorFailures <= 0) return 0
+  return Math.min(25 * 2 ** Math.min(priorFailures - 1, 5), 800)
+}
+
+function pairKey(ip: string, email: string): string {
+  return `pair:${ip}:${sha256(email)}`
+}
+
 async function assertLoginAllowed(config: AppConfig, ip: string, email: string) {
   const since = new Date(Date.now() - config.LOGIN_WINDOW_SEC * 1000)
   const prisma = getPrisma()
-  const [byIp, byEmail] = await Promise.all([
+  const [byPair, byIp] = await Promise.all([
+    prisma.loginAttempt.count({ where: { key: pairKey(ip, email), createdAt: { gt: since } } }),
     prisma.loginAttempt.count({ where: { key: `ip:${ip}`, createdAt: { gt: since } } }),
-    prisma.loginAttempt.count({ where: { key: `email:${email}`, createdAt: { gt: since } } }),
   ])
-  if (byIp >= config.LOGIN_MAX_FAILURES || byEmail >= config.LOGIN_MAX_FAILURES) {
+  if (byPair >= config.LOGIN_MAX_FAILURES || byIp >= config.LOGIN_MAX_FAILURES * 5) {
+    await delay(loginDelayMs(Math.max(byPair, 1)))
     await writeAudit(prisma, { action: 'auth.login.rate_limited', ip, metadata: { emailHash: sha256(email) } })
     throw new AppError(429, 'rate_limited', 'Too many login attempts')
   }
@@ -224,11 +321,27 @@ async function assertLoginAllowed(config: AppConfig, ip: string, email: string) 
 
 async function recordFailure(ip: string, email: string) {
   const prisma = getPrisma()
-  await prisma.loginAttempt.createMany({ data: [{ key: `ip:${ip}` }, { key: `email:${email}` }] })
+  await prisma.loginAttempt.createMany({ data: [{ key: pairKey(ip, email) }, { key: `ip:${ip}` }] })
+  const since = new Date(Date.now() - 15 * 60 * 1000)
+  const count = await prisma.loginAttempt.count({ where: { key: pairKey(ip, email), createdAt: { gt: since } } })
+  await delay(loginDelayMs(count))
 }
 
 async function clearFailures(ip: string, email: string) {
-  await getPrisma().loginAttempt.deleteMany({ where: { key: { in: [`ip:${ip}`, `email:${email}`] } } })
+  await getPrisma().loginAttempt.deleteMany({ where: { key: { in: [pairKey(ip, email), `ip:${ip}`] } } })
+}
+
+async function loadInvite(token: string) {
+  const invite = await getPrisma().adminInvite.findUnique({ where: { tokenHash: sha256(token) } })
+  if (!invite || invite.usedAt || invite.expiresAt.getTime() < Date.now()) {
+    throw new AppError(410, 'invite_invalid', 'Invite is invalid or expired')
+  }
+  return invite
+}
+
+function delay(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve()
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function getDummyHash(): Promise<string> {

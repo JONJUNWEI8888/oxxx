@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import type { UserStatus } from '@prisma/client'
+import type { AdminRole, UserStatus } from '@prisma/client'
 import { z } from 'zod'
 import { writeAudit } from '../audit'
 import { requirePermission } from '../auth/guard'
@@ -7,7 +7,6 @@ import type { AppConfig } from '../config'
 import { blindIndex, decryptString, encryptString } from '../crypto/pii'
 import { getPrisma } from '../db'
 import { AppError } from '../errors'
-import { requestIp, requestUserAgent } from '../http'
 
 const createBody = z.object({
   email: z.string().email().max(320),
@@ -55,7 +54,7 @@ export async function userRoutes(app: FastifyInstance, config: AppConfig) {
         },
       })
       await writeAudit(prisma, audit(request, 'user.create', 'user', user.id))
-      return presentUser(user, config)
+      return presentUser(user, config, request.admin?.role ?? 'support')
     },
   )
 
@@ -82,7 +81,7 @@ export async function userRoutes(app: FastifyInstance, config: AppConfig) {
       ])
       await writeAudit(prisma, audit(request, 'user.list', 'user', null, { page: query.page, total }))
       return {
-        items: rows.map((row) => presentUser(row, config)),
+        items: rows.map((row) => presentUser(row, config, request.admin?.role ?? 'support')),
         page: query.page,
         pageSize: query.pageSize,
         total,
@@ -106,7 +105,7 @@ export async function userRoutes(app: FastifyInstance, config: AppConfig) {
       })
       await writeAudit(prisma, audit(request, 'user.read', 'user', id))
       return {
-        ...presentUser(user, config),
+        ...presentUser(user, config, request.admin?.role ?? 'support'),
         kyc: latest ? { id: latest.id, level: latest.level, status: latest.status } : null,
       }
     },
@@ -146,13 +145,13 @@ export async function userRoutes(app: FastifyInstance, config: AppConfig) {
       if (updated.count !== 1) throw new AppError(409, 'invalid_status', 'User cannot be banned from its current status')
       await writeAudit(prisma, audit(request, 'user.ban', 'user', id, { reason: body.reason ?? null }))
       const user = await prisma.user.findUniqueOrThrow({ where: { id } })
-      return presentUser(user, config)
+      return presentUser(user, config, request.admin?.role ?? 'support')
     },
   )
 }
 
 async function changeStatus(
-  request: { params: unknown; body?: unknown; admin: { id: string } | null; ip: string; headers: { 'user-agent'?: string | string[] } },
+  request: { params: unknown; body?: unknown; admin: { id: string; role: AdminRole } | null; ip: string; headers: { 'user-agent'?: string | string[] } },
   config: AppConfig,
   from: UserStatus,
   to: UserStatus,
@@ -173,21 +172,36 @@ async function changeStatus(
     userAgent: typeof request.headers['user-agent'] === 'string' ? request.headers['user-agent'] : null,
   })
   const user = await prisma.user.findUniqueOrThrow({ where: { id } })
-  return presentUser(user, config)
+  return presentUser(user, config, request.admin?.role ?? 'support')
 }
 
 function presentUser(
   user: { id: string; emailCipher: string; phoneCipher: string | null; status: UserStatus; createdAt: Date; lastLoginAt: Date | null },
   config: AppConfig,
+  role: AdminRole,
 ) {
+  const email = decryptString(user.emailCipher, config.piiKey)
+  const phone = user.phoneCipher ? decryptString(user.phoneCipher, config.piiKey) : null
+  const mask = role === 'support'
   return {
     id: user.id,
-    email: decryptString(user.emailCipher, config.piiKey),
-    phone: user.phoneCipher ? decryptString(user.phoneCipher, config.piiKey) : null,
+    email: mask ? maskEmail(email) : email,
+    phone: phone && mask ? maskPhone(phone) : phone,
     status: user.status,
     createdAt: user.createdAt.toISOString(),
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
   }
+}
+
+export function maskEmail(email: string): string {
+  const [name, domain] = email.split('@')
+  if (!domain) return '***'
+  return `${(name ?? '').slice(0, 1)}***@${domain}`
+}
+
+export function maskPhone(phone: string): string {
+  if (phone.length <= 4) return '***'
+  return `${phone.slice(0, 2)}***${phone.slice(-2)}`
 }
 
 function searchWhere(q: string | undefined, config: AppConfig) {

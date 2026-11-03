@@ -1,6 +1,6 @@
 import { BALANCE_OF_SELECTOR } from './constants'
 import { isBytes32, padAddressTopic, parseHexInt, parseQuantity, toHex } from './hex'
-import type { LogFilter, RpcBlock, RpcClient, RpcLog } from './types'
+import type { LogFilter, RpcBlock, RpcClient, RpcLog, RpcTransaction } from './types'
 
 type Parsed<T> = { value: T }
 
@@ -43,6 +43,15 @@ export class HttpRpcClient implements RpcClient {
       const block = parseBlock(result)
       if (!block) return undefined
       return { value: block }
+    })
+  }
+
+  getTransaction(hash: string): Promise<RpcTransaction | null> {
+    return this.call('eth_getTransactionByHash', [hash], (result) => {
+      if (result === null) return undefined
+      const tx = parseTransaction(result)
+      if (!tx) return undefined
+      return { value: tx }
     })
   }
 
@@ -143,6 +152,14 @@ function parseBlock(result: unknown): RpcBlock | null {
     hash: block.hash.toLowerCase(),
     parentHash: block.parentHash.toLowerCase(),
   }
+}
+
+function parseTransaction(result: unknown): RpcTransaction | null {
+  if (!result || typeof result !== 'object') return null
+  const tx = result as Record<string, unknown>
+  const blockNumber = parseHexInt(tx.blockNumber)
+  if (blockNumber === null || !isBytes32(tx.hash) || !isBytes32(tx.blockHash)) return null
+  return { hash: tx.hash.toLowerCase(), blockNumber, blockHash: tx.blockHash.toLowerCase() }
 }
 
 function parseLogs(result: unknown): RpcLog[] | null {

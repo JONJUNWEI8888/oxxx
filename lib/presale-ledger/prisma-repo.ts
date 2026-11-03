@@ -128,7 +128,9 @@ export function createPrismaPresaleRepo(prisma: PrismaClient): PresaleRepository
 
     async sumAmountRawUpTo(blockNumber) {
       const rows = await prisma.$queryRaw<Array<{ sum: string | null }>>`
-        SELECT COALESCE(SUM(amount_raw), 0)::text AS sum
+        SELECT COALESCE(SUM(
+          CASE WHEN direction = 'outbound' THEN -amount_raw ELSE amount_raw END
+        ), 0)::text AS sum
         FROM presale_contributions
         WHERE block_number <= ${blockNumber}
       `
@@ -144,6 +146,7 @@ export function createPrismaPresaleRepo(prisma: PrismaClient): PresaleRepository
           COUNT(DISTINCT from_address)::int AS subscribers,
           MAX(block_time) AS latest
         FROM presale_contributions
+        WHERE direction = 'inbound'
       `
       const row = rows[0]
       return {
@@ -157,10 +160,10 @@ export function createPrismaPresaleRepo(prisma: PrismaClient): PresaleRepository
       const totals = await prisma.$queryRaw<Array<{ total: string | null; count: number }>>`
         SELECT COALESCE(SUM(amount_raw), 0)::text AS total, COUNT(*)::int AS count
         FROM presale_contributions
-        WHERE from_address = ${address}
+        WHERE from_address = ${address} AND direction = 'inbound'
       `
       const rows = await prisma.presaleContribution.findMany({
-        where: { fromAddress: address },
+        where: { fromAddress: address, direction: 'inbound' },
         orderBy: [{ blockNumber: 'desc' }, { logIndex: 'desc' }],
         take: limit,
       })
@@ -228,6 +231,7 @@ function contributionData(contribution: Contribution) {
     blockHash: contribution.blockHash,
     blockTime: contribution.blockTime,
     confirmations: contribution.confirmations,
+    direction: contribution.direction,
   }
 }
 
@@ -241,6 +245,7 @@ function fromRow(row: {
   blockHash: string
   blockTime: Date
   confirmations: number
+  direction: 'inbound' | 'outbound'
 }): Contribution {
   return {
     txHash: row.txHash,
@@ -252,6 +257,7 @@ function fromRow(row: {
     blockHash: row.blockHash,
     blockTime: row.blockTime,
     confirmations: row.confirmations,
+    direction: row.direction,
   }
 }
 
@@ -264,7 +270,8 @@ function dedupeCheckpoints(checkpoints: Checkpoint[]): Checkpoint[] {
 function asBigint(value: unknown): bigint {
   if (typeof value === 'bigint') return value
   if (value === null || value === undefined) return 0n
-  return BigInt(value.toString())
+  const whole = value.toString().split('.')[0] || '0'
+  return BigInt(whole)
 }
 
 function isUnique(error: unknown): boolean {

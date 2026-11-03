@@ -123,6 +123,13 @@ describe('kyc review', () => {
     const file = await app.inject({ method: 'GET', url: `${downloadUrl.pathname}${downloadUrl.search}` })
     expect(file.statusCode).toBe(200)
     expect(file.body).toBe('png-bytes')
+    const wrongType = await app.inject({
+      method: 'PUT',
+      url: `${uploadUrl.pathname}${uploadUrl.search}`,
+      headers: { 'content-type': 'application/pdf' },
+      payload: Buffer.from('not-a-pdf'),
+    })
+    expect(wrongType.statusCode).toBe(415)
     expect(file.headers['cache-control']).toContain('private')
   })
 })

@@ -23,6 +23,8 @@ const envSchema = z.object({
   LOGIN_MAX_FAILURES: z.coerce.number().int().positive().default(8),
   LOGIN_WINDOW_SEC: z.coerce.number().int().positive().default(900),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
+  /** Trusted reverse-proxy hops. 0 ignores X-Forwarded-For. Never use "trust all". */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
 })
 
 export type AppConfig = z.infer<typeof envSchema> & {

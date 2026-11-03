@@ -28,6 +28,21 @@ describe('rbac', () => {
     })
     expect(created.statusCode).toBe(200)
     const userId = created.json().id as string
+    const masked = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${userId}`,
+      headers: auth(supportToken),
+    })
+    expect(masked.json().email).not.toBe('ada@example.com')
+    expect(masked.json().email).toMatch(/^\w\*\*\*@example\.com$/)
+    expect(masked.json().phone).not.toBe('+15551212')
+    const full = await app.inject({
+      method: 'GET',
+      url: `/api/v1/users/${userId}`,
+      headers: auth(superToken),
+    })
+    expect(full.json().email).toBe('ada@example.com')
+    expect(full.json().phone).toBe('+15551212')
     const stored = await prisma.user.findUniqueOrThrow({ where: { id: userId } })
     expect(stored.emailCipher).not.toContain('ada@example.com')
     expect(stored.emailHash).not.toContain('ada')

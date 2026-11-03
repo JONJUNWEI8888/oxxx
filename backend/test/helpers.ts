@@ -35,6 +35,7 @@ export async function resetDb() {
       admin_refresh_tokens,
       mfa_challenges,
       login_attempts,
+      admin_invites,
       admin_users,
       users,
       presale_contributions,

@@ -88,17 +88,18 @@ export class MemoryPresaleRepo implements PresaleRepository {
   async sumAmountRawUpTo(blockNumber: number): Promise<bigint> {
     return this.contributions
       .filter((row) => row.blockNumber <= blockNumber)
-      .reduce((sum, row) => sum + row.amountRaw, 0n)
+      .reduce((sum, row) => sum + (row.direction === 'outbound' ? -row.amountRaw : row.amountRaw), 0n)
   }
 
   async aggregate(): Promise<Aggregate> {
-    const addresses = new Set(this.contributions.map((row) => row.fromAddress))
-    const latest = this.contributions.reduce<Date | null>((max, row) => {
+    const inbound = this.contributions.filter((row) => row.direction !== 'outbound')
+    const addresses = new Set(inbound.map((row) => row.fromAddress))
+    const latest = inbound.reduce<Date | null>((max, row) => {
       if (!max || row.blockTime > max) return row.blockTime
       return max
     }, null)
     return {
-      totalRaw: this.contributions.reduce((sum, row) => sum + row.amountRaw, 0n),
+      totalRaw: inbound.reduce((sum, row) => sum + row.amountRaw, 0n),
       subscriberCount: addresses.size,
       latestBlockTime: latest,
     }
@@ -106,7 +107,7 @@ export class MemoryPresaleRepo implements PresaleRepository {
 
   async contributionsForAddress(address: string, limit: number): Promise<AddressPage> {
     const rows = this.contributions
-      .filter((row) => row.fromAddress === address)
+      .filter((row) => row.fromAddress === address && row.direction !== 'outbound')
       .sort((a, b) => b.blockNumber - a.blockNumber || b.logIndex - a.logIndex)
     return {
       totalRaw: rows.reduce((sum, row) => sum + row.amountRaw, 0n),

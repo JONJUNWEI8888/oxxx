@@ -2,7 +2,7 @@ import { timingSafeEqual } from 'crypto'
 
 export function authorizeCron(request: Request, env: NodeJS.ProcessEnv = process.env): boolean {
   const secret = env.CRON_SECRET ?? ''
-  if (!secret) return env.NODE_ENV !== 'production'
+  if (!secret) return false
   const header = request.headers.get('authorization') ?? ''
   const bearer = /^bearer\s+/i.test(header) ? header.replace(/^bearer\s+/i, '') : ''
   const alternate = request.headers.get('x-cron-secret') ?? ''

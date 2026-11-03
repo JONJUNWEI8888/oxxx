@@ -29,7 +29,8 @@ export function decodeTransferLog(
   const from = topicToAddress(log.topics[1])
   const to = topicToAddress(log.topics[2])
   if (!from || !to) throw new UndecodableLogError(`invalid transfer topics in ${log.transactionHash}`)
-  if (to !== receiving) return null
+  const direction = to === receiving ? 'inbound' : from === receiving ? 'outbound' : null
+  if (!direction) return null
   if (!/^0x[0-9a-fA-F]{64}$/.test(log.data)) {
     throw new UndecodableLogError(`invalid transfer amount in ${log.transactionHash}`)
   }
@@ -43,5 +44,6 @@ export function decodeTransferLog(
     amountRaw,
     blockNumber: log.blockNumber,
     blockHash: log.blockHash,
+    direction,
   }
 }

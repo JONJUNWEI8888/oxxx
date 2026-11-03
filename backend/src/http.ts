@@ -1,8 +1,7 @@
 import type { FastifyRequest } from 'fastify'
 
+/** Socket address after Fastify applies the configured proxy hop count. */
 export function requestIp(request: FastifyRequest): string {
-  const forwarded = request.headers['x-forwarded-for']
-  if (typeof forwarded === 'string' && forwarded.trim()) return forwarded.split(',')[0]!.trim()
   return request.ip
 }
 

@@ -7,7 +7,7 @@ export type AccessClaims = {
   sub: string
   role: AdminRole
   tv: number
-  scope: 'access' | 'totp_setup'
+  scope: 'access'
 }
 
 export async function signToken(claims: AccessClaims, config: AppConfig, ttlSec: number): Promise<string> {
@@ -21,7 +21,7 @@ export async function signToken(claims: AccessClaims, config: AppConfig, ttlSec:
 
 export async function verifyToken(token: string, config: AppConfig): Promise<AccessClaims> {
   const { payload } = await jwtVerify(token, secret(config))
-  if (payload.scope !== 'access' && payload.scope !== 'totp_setup') throw new Error('bad scope')
+  if (payload.scope !== 'access') throw new Error('bad scope')
   if (typeof payload.sub !== 'string' || typeof payload.tv !== 'number') throw new Error('bad token')
   if (payload.role !== 'super_admin' && payload.role !== 'kyc_reviewer' && payload.role !== 'support') {
     throw new Error('bad role')

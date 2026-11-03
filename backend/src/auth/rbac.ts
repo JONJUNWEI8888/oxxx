@@ -3,6 +3,7 @@ import type { AdminRole } from '@prisma/client'
 export const PERMISSIONS = {
   'users.read': ['super_admin', 'kyc_reviewer', 'support'],
   'users.create': ['super_admin'],
+  'admins.invite': ['super_admin'],
   'users.freeze': ['super_admin', 'support'],
   'users.unfreeze': ['super_admin', 'support'],
   'users.ban': ['super_admin'],

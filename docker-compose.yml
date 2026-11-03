@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: oxxx
-      POSTGRES_PASSWORD: oxxx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: oxxx
     ports:
       - "5433:5432"
@@ -24,19 +24,20 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://oxxx:oxxx@postgres:5432/oxxx
+      DATABASE_URL: postgresql://oxxx:${POSTGRES_PASSWORD}@postgres:5432/oxxx
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: "4000"
-      JWT_SECRET: dev-only-jwt-secret-change-me-32bytes
-      PII_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
-      ADMIN_EMAIL: admin@example.com
-      ADMIN_PASSWORD: DevOnly-admin-pass-12
-      ADMIN_TOTP_SECRET: JBSWY3DPEHPK3PXP
-      ADMIN_CORS_ORIGINS: http://localhost:3000
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:?PII_ENCRYPTION_KEY is required}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL is required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      ADMIN_TOTP_SECRET: ${ADMIN_TOTP_SECRET:?ADMIN_TOTP_SECRET is required}
+      ADMIN_CORS_ORIGINS: ${ADMIN_CORS_ORIGINS:-http://localhost:3000}
       STORAGE_DRIVER: local
-      PUBLIC_BASE_URL: http://localhost:4000
-      CRON_SECRET: dev-cron-secret
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:4000}
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required}
       PRESALE_ALERT_CHANNELS: log
     ports:
       - "4000:4000"
@@ -62,11 +63,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://oxxx:oxxx@postgres:5432/oxxx
+      DATABASE_URL: postgresql://oxxx:${POSTGRES_PASSWORD}@postgres:5432/oxxx
       NODE_ENV: production
-      JWT_SECRET: dev-only-jwt-secret-change-me-32bytes
-      PII_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
-      CRON_SECRET: dev-cron-secret
+      CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required}
       PRESALE_ALERT_CHANNELS: log
     command:
       [

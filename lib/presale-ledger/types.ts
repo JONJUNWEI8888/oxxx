@@ -23,9 +23,16 @@ export type LogFilter = {
   topics: Array<string | null>
 }
 
+export type RpcTransaction = {
+  hash: string
+  blockNumber: number
+  blockHash: string
+}
+
 export interface RpcClient {
   blockNumber(): Promise<number>
   getBlock(blockNumber: number): Promise<RpcBlock | null>
+  getTransaction(hash: string): Promise<RpcTransaction | null>
   getLogs(filter: LogFilter): Promise<RpcLog[]>
   getUsdtBalance(contract: string, holder: string, block: number | 'latest'): Promise<bigint>
 }
@@ -40,6 +47,7 @@ export type Contribution = {
   blockHash: string
   blockTime: Date
   confirmations: number
+  direction: 'inbound' | 'outbound'
 }
 
 export type IndexerState = {

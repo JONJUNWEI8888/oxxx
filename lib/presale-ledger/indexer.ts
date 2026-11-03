@@ -136,12 +136,20 @@ export async function runPresaleIndexBatch(input: {
     while (from <= scanEnd) {
       if (Date.now() - started > config.budgetMs && scannedTo > cursor) break
       const to = Math.min(from + config.chunkSize - 1, scanEnd)
-      const logs = await getLogsResilient(rpc, {
+      const padded = padAddressTopic(config.receivingAddress)
+      const inbound = await getLogsResilient(rpc, {
         address: config.usdtContract,
         fromBlock: from,
         toBlock: to,
-        topics: [TRANSFER_TOPIC, null, padAddressTopic(config.receivingAddress)],
+        topics: [TRANSFER_TOPIC, null, padded],
       })
+      const outbound = await getLogsResilient(rpc, {
+        address: config.usdtContract,
+        fromBlock: from,
+        toBlock: to,
+        topics: [TRANSFER_TOPIC, padded, null],
+      })
+      const logs = dedupeLogs([...inbound, ...outbound])
       const needed = new Set<number>([to])
       for (const entry of logs) needed.add(entry.blockNumber)
       const blocks = new Map<number, { hash: string; timestamp: number }>()
@@ -157,6 +165,10 @@ export async function runPresaleIndexBatch(input: {
         }
         const decoded = decodeTransferLog(entry, config.receivingAddress, config.usdtContract)
         if (!decoded) continue
+        const tx = await rpc.getTransaction(decoded.txHash)
+        if (!tx || tx.blockHash !== block.hash || tx.blockNumber !== entry.blockNumber) {
+          throw new Error(`Transaction block hash mismatch for ${decoded.txHash}`)
+        }
         contributions.push({
           ...decoded,
           blockTime: new Date(block.timestamp * 1000),
@@ -198,6 +210,18 @@ export async function runPresaleIndexBatch(input: {
   } finally {
     if (locked) await repo.releaseLock(owner).catch(() => {})
   }
+}
+
+function dedupeLogs(logs: RpcLog[]): RpcLog[] {
+  const seen = new Set<string>()
+  const unique = []
+  for (const log of logs) {
+    const key = `${log.transactionHash}:${log.logIndex}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(log)
+  }
+  return unique
 }
 
 async function initializeState(repo: PresaleRepository, rpc: RpcClient, config: PresaleIndexConfig) {

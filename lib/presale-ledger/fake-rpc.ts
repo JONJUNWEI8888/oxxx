@@ -1,4 +1,4 @@
-import type { LogFilter, RpcBlock, RpcClient, RpcLog } from './types'
+import type { LogFilter, RpcBlock, RpcClient, RpcLog, RpcTransaction } from './types'
 
 /** In-memory chain used by indexer tests. Not a network client. */
 export class FakeRpc implements RpcClient {
@@ -45,13 +45,22 @@ export class FakeRpc implements RpcClient {
     return this.blocks.get(blockNumber) ?? null
   }
 
+  async getTransaction(hash: string): Promise<RpcTransaction | null> {
+    const log = this.logs.find((entry) => entry.transactionHash === hash.toLowerCase())
+    if (!log) return null
+    const block = this.blocks.get(log.blockNumber)
+    if (!block) return null
+    return { hash: log.transactionHash, blockNumber: log.blockNumber, blockHash: block.hash }
+  }
+
   async getLogs(filter: LogFilter): Promise<RpcLog[]> {
     this.logCalls.push(filter)
     return this.logs.filter((log) => {
       if (log.address.toLowerCase() !== filter.address.toLowerCase()) return false
       if (log.blockNumber < filter.fromBlock || log.blockNumber > filter.toBlock) return false
-      const [topic0, , topic2] = filter.topics
+      const [topic0, topic1, topic2] = filter.topics
       if (topic0 && log.topics[0] !== topic0.toLowerCase()) return false
+      if (topic1 && log.topics[1] !== topic1.toLowerCase()) return false
       if (topic2 && log.topics[2] !== topic2.toLowerCase()) return false
       return true
     })
