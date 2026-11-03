@@ -1,6 +1,9 @@
+import { CspNonceProvider } from '@/components/csp-nonce'
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Anton_SC, Noto_Sans_SC, Space_Mono } from 'next/font/google'
+import { headers } from 'next/headers'
+import { connection } from 'next/server'
 import './globals.css'
 
 const notoSansSC = Noto_Sans_SC({
@@ -34,11 +37,16 @@ export const viewport: Viewport = {
   themeColor: '#000000',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Nonces are per request. Waiting for the request keeps every page dynamic
+  // so Next can stamp the CSP nonce onto its own scripts.
+  await connection()
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     <html
       lang="zh-CN"
@@ -51,7 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        {children}
+        <CspNonceProvider nonce={nonce}>{children}</CspNonceProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

@@ -137,18 +137,18 @@ export async function fetchOptionsBoard(underlying: Underlying): Promise<Options
   }
 }
 
-export function formatExpiry(code: string, lang: 'zh' | 'en') {
+export function formatExpiry(code: string, lang: 'zh-CN' | 'en') {
   const m = Number(code.slice(2, 4))
   const d = Number(code.slice(4, 6))
-  if (lang === 'zh') return `${m}月${d}日`
+  if (lang === 'zh-CN') return `${m}月${d}日`
   return new Date(Date.UTC(2000, m - 1, d)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
-export function formatCountdown(ms: number, lang: 'zh' | 'en') {
-  if (ms <= 0) return lang === 'zh' ? '已到期' : 'Expired'
+export function formatCountdown(ms: number, lang: 'zh-CN' | 'en') {
+  if (ms <= 0) return lang === 'zh-CN' ? '已到期' : 'Expired'
   const days = Math.floor(ms / 86_400_000)
   const hours = Math.floor((ms % 86_400_000) / 3_600_000)
   const minutes = Math.floor((ms % 3_600_000) / 60_000)
-  if (lang === 'zh') return days > 0 ? `${days}天${hours}小时` : `${hours}小时${minutes}分`
+  if (lang === 'zh-CN') return days > 0 ? `${days}天${hours}小时` : `${hours}小时${minutes}分`
   return days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`
 }

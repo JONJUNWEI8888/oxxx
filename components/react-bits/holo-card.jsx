@@ -305,7 +305,7 @@ const compile = (gl, type, source) => {
 
 export default function HoloCard({
   image,
-  backImage,
+  backImage = undefined,
   alt = '',
   preset = 'bursts',
   intensity = 0.85,
@@ -321,7 +321,7 @@ export default function HoloCard({
   idle = true,
   shadow = true,
   className = '',
-  style
+  style = undefined
 }) {
   const rootRef = useRef(null);
   const rotorRef = useRef(null);

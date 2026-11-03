@@ -388,7 +388,7 @@ const DitherVeil = ({
   wander = false,
   clickBurst = true,
   className = '',
-  style
+  style = undefined
 }) => {
   const containerRef = useRef(null);
   const settingsRef = useRef(null);
