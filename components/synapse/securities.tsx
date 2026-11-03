@@ -1,11 +1,9 @@
 'use client'
 
-import Image from 'next/image'
-import { MotionConfig, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { MotionConfig, motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import type { PointerEvent } from 'react'
 import { type Bi, useI18n } from '@/lib/i18n'
-import { cn } from '@/lib/utils'
+import { SecuritiesDevices } from './securities-devices'
 
 const FEATURES: Bi[] = [
   { zh: '一站式交易美股、港股、ETF 与美股期权', en: 'Trade US stocks, HK stocks, ETFs and US options in one place' },
@@ -13,107 +11,9 @@ const FEATURES: Bi[] = [
   { zh: '个股分析、期权链与风险收益分析工具', en: 'Stock research, option chains and risk/reward tools' },
 ]
 
-const COINS = [
-  { src: '/logos/tencent.svg', label: 'Tencent', ticker: '0700.HK', className: 'left-[4%] top-[2%] w-[46%] aspect-square', tilt: -18, delay: 0 },
-  { src: '/logos/apple.svg', label: 'Apple', ticker: 'AAPL', className: 'right-[2%] top-[22%] w-[40%] aspect-square', tilt: 16, delay: 0.6 },
-  { src: '/logos/alibaba.svg', label: 'Alibaba', ticker: 'BABA', className: 'left-[8%] top-[46%] w-[40%] aspect-square', tilt: -14, delay: 1.2 },
-  { src: '/logos/nvidia.svg', label: 'NVIDIA', ticker: 'NVDA', className: 'right-[8%] top-[66%] w-[40%] aspect-square', tilt: 20, delay: 1.8 },
-]
-
 const fadeUp = {
   hidden: { opacity: 0, y: 28, filter: 'blur(8px)' },
   show: { opacity: 1, y: 0, filter: 'blur(0px)' },
-}
-
-function StockCoin({ src, label, ticker, className, tilt, delay }: (typeof COINS)[number]) {
-  return (
-    <motion.div
-      className={cn('absolute', className)}
-      style={{ perspective: 900 }}
-      initial={{ opacity: 0, scale: 0.6, y: 60 }}
-      whileInView={{ opacity: 1, scale: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 1, delay: 0.3 + delay * 0.25, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <motion.div
-        className="group relative size-full"
-        style={{ transformStyle: 'preserve-3d' }}
-        animate={{ y: [0, -14, 0], rotateY: [tilt, tilt * -0.6, tilt], rotateX: [12, 4, 12] }}
-        transition={{ duration: 6.5, delay, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        {/* Ridged edge offset behind the face reads as coin thickness while the coin rotates. */}
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 translate-x-2 translate-y-3 rounded-full bg-[repeating-linear-gradient(90deg,#3a2a33_0px,#3a2a33_2px,#16101a_2px,#16101a_4px)] [box-shadow:0_30px_50px_-12px_rgba(0,0,0,0.9)]"
-        />
-        <span aria-hidden="true" className="absolute inset-0 translate-x-1 translate-y-1.5 rounded-full bg-[#2a1f27]" />
-
-        <div className="absolute inset-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_32%_28%,#8a7f88_0%,#4b434b_38%,#211b22_100%)] [box-shadow:inset_0_2px_6px_rgba(255,255,255,0.35),inset_0_-10px_24px_rgba(0,0,0,0.6)]">
-          <span aria-hidden="true" className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,rgba(255,255,255,0.08),rgba(255,255,255,0)_25%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0)_75%,rgba(255,255,255,0.08))]" />
-          <motion.span
-            aria-hidden="true"
-            className="absolute inset-[7%] rounded-full border-[3px] border-gold"
-            animate={{ boxShadow: ['0 0 10px var(--color-gold), inset 0 0 10px var(--color-gold)', '0 0 22px var(--color-gold), inset 0 0 18px var(--color-gold)', '0 0 10px var(--color-gold), inset 0 0 10px var(--color-gold)'] }}
-            transition={{ duration: 3, delay, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <span aria-hidden="true" className="absolute inset-[13%] rounded-full border border-foreground/10" />
-
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Image
-              src={src}
-              alt={`${label} ${ticker}`}
-              width={96}
-              height={96}
-              className="size-[42%] object-contain opacity-85 brightness-0 invert drop-shadow-[0_2px_2px_rgba(0,0,0,0.6)]"
-            />
-          </div>
-
-          <motion.span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-foreground/35 to-transparent"
-            animate={{ x: ['0%', '520%'] }}
-            transition={{ duration: 1.8, delay: 1 + delay, repeat: Infinity, repeatDelay: 4, ease: 'easeInOut' }}
-          />
-        </div>
-
-        <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[11px] tracking-[0.3em] text-gold/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          {ticker}
-        </span>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-function CoinCluster() {
-  const px = useMotionValue(0)
-  const py = useMotionValue(0)
-  const rotateY = useSpring(useTransform(px, [-0.5, 0.5], [-10, 10]), { stiffness: 80, damping: 18 })
-  const rotateX = useSpring(useTransform(py, [-0.5, 0.5], [8, -8]), { stiffness: 80, damping: 18 })
-
-  const onMove = (e: PointerEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    px.set((e.clientX - r.left) / r.width - 0.5)
-    py.set((e.clientY - r.top) / r.height - 0.5)
-  }
-
-  return (
-    <div
-      className="relative mx-auto aspect-[4/5] w-full max-w-md"
-      style={{ perspective: 1200 }}
-      onPointerMove={onMove}
-      onPointerLeave={() => {
-        px.set(0)
-        py.set(0)
-      }}
-    >
-      <div aria-hidden="true" className="absolute inset-[18%] rounded-full bg-gold/15 blur-3xl" />
-      <motion.div className="relative size-full" style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}>
-        {COINS.map((coin) => (
-          <StockCoin key={coin.ticker} {...coin} />
-        ))}
-      </motion.div>
-    </div>
-  )
 }
 
 export function Securities() {
@@ -127,7 +27,7 @@ export function Securities() {
       >
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-16 md:flex-row md:gap-10">
           <motion.div
-            className="flex w-full flex-col gap-8 md:w-3/5"
+            className="flex w-full flex-col gap-8 md:w-1/2"
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, amount: 0.3 }}
@@ -185,8 +85,8 @@ export function Securities() {
             </motion.div>
           </motion.div>
 
-          <div className="w-full md:w-2/5">
-            <CoinCluster />
+          <div className="w-full md:w-1/2">
+            <SecuritiesDevices />
           </div>
         </div>
       </section>
