@@ -20,7 +20,7 @@
 docker compose up --build
 ```
 
-这会启动 Postgres（宿主机端口 **5433**）和管理 API（<http://localhost:4000>）。直接把端口映射到本机时 `TRUST_PROXY_HOPS` 保持 `0`，忽略客户端自带的 `X-Forwarded-For`。前面只有一层反向代理时设为 `1`。
+这会启动 Postgres（只绑定 **127.0.0.1:5433**）和管理 API（<http://localhost:4000>）。`DATABASE_URL` 里的密码若包含 `@ : / ? #` 等保留字符，必须先做百分号编码。直接把端口映射到本机时 `TRUST_PROXY_HOPS` 保持 `0`，忽略客户端自带的 `X-Forwarded-For`。前面只有一层反向代理时设为 `1`。
 
 - 健康检查：`GET /health`
 - OpenAPI 界面：<http://localhost:4000/docs>
@@ -61,7 +61,9 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 3. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 作废刷新令牌。
 4. `POST /api/v1/auth/invites` 由超级管理员创建一次性邀请。`POST /api/v1/auth/invites/start` 展示 TOTP，`POST /api/v1/auth/invites/redeem` 设置密码并完成绑定。
 
-密码失败按 **IP + 账号** 计数，并随次数变慢。只知道邮箱不能把管理员从别的 IP 锁死。同一 IP 的总失败次数另有上限。客户端 IP 只取 Fastify 按 `TRUST_PROXY_HOPS` 算出的 `request.ip`，不直接读 `X-Forwarded-For`。
+密码失败按 **IP + 账号** 计数，并随次数变慢。只知道邮箱不能把管理员从别的 IP 锁死。同一 IP 的总失败次数另有上限。失败次数用数据库里的原子自增，锁定与否看自增后的返回值。TOTP 时间步用带条件的 `updateMany` 抢占，同一动态码并发提交只有一次成功。客户端 IP 只取 Fastify 按 `TRUST_PROXY_HOPS` 算出的 `request.ip`，不直接读 `X-Forwarded-For`。
+
+登录、MFA、邀请打开和邀请绑定还经过 Upstash（`@upstash/ratelimit`）的分布式限流。Redis 调用失败时这些接口 **失败关闭**：返回 `503`，并带 `Retry-After`，不会退回进程内计数。公开的预售查询接口不同：Redis 失败时打一条警告日志，改用本进程内的限流继续服务。生产环境如果没有配置 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`，两类接口都返回 503。本地开发和测试没有这两项配置时使用内存限流。限流器按名称只创建一次。
 
 | 权限 | super_admin | kyc_reviewer | support |
 | --- | --- | --- | --- |
@@ -131,13 +133,13 @@ KYC 证件默认存在本机 `var/storage`，通过 HMAC 签名地址读写，�
 - `GET /api/presale`：`raised` 是已确认转入的 USDT 合计，`raisedRaw` 是 18 位精度的原始整数，`progress` / `progressPercent` 相对 3000 万硬顶，`subscriberCount` 是去重付款地址数，`synced: false` 表示还在回填，数字不完整。
 - `GET /api/presale/subscribers/0x…`：该地址的合计和最近若干笔。没有记录时返回 0，不是 404。
 
-两个接口都有大约 10 秒缓存，并按 IP 限流。缓存命中时不再打 RPC；RPC 只发生在索引和对账。节点返回 HTTP 错误、JSON-RPC error 或无法解析的结果时会换下一个节点，不会把坏数据当成 0。
+两个接口都有大约 10 秒缓存，并按 IP 限流。限流走 Upstash；Redis 出错时公开查询退回本进程内存并写警告日志。缓存命中时不再打 RPC；RPC 只发生在索引和对账。节点返回 HTTP 错误、JSON-RPC error 或无法解析的结果时会换下一个节点，不会把坏数据当成 0。
 
 ## v2 还没做
 
 - 把现有登录 / 注册 / 交易页接到用户体系，用户自行提交 KYC
 - 加密字段的模糊搜索、管理员禁用和 TOTP 恢复码
-- 多副本登录限流（现在登录限流在 Postgres，全局限流在进程内）
+- 把登录失败的 Postgres 计数也换成与 Upstash 同一套策略的多副本视图（现在密码失败次数已在 Postgres 里原子自增，分布式闸门在 Redis）
 - 收款地址转出的账务处理，避免归集资金时对账告警
 - 管理界面本身
 - 密钥轮换和证件病毒扫描

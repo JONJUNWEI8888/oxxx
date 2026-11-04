@@ -1,4 +1,6 @@
 import { ipAddress } from '@vercel/functions'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 
 export type RateLimitResult = {
   allowed: boolean
@@ -10,12 +12,21 @@ export type RateLimiter = {
   check(key: string): Promise<RateLimitResult>
 }
 
+/** Redis could not answer. Admin auth must surface this as HTTP 503. */
+export class RateLimitUnavailableError extends Error {
+  readonly retryAfterSec: number
+
+  constructor(retryAfterSec = 5) {
+    super('rate limiter unavailable')
+    this.name = 'RateLimitUnavailableError'
+    this.retryAfterSec = retryAfterSec
+  }
+}
+
+export type DegradePolicy = 'memory' | 'closed'
+
 type Hit = { count: number; resetAt: number }
 
-/**
- * Fixed-window counter. In-memory is only for local dev and tests.
- * Production must use Upstash so limits survive across Vercel instances.
- */
 export function createMemoryRateLimiter(opts: { limit: number; windowMs: number; now?: () => number }): RateLimiter {
   const buckets = new Map<string, Hit>()
   return {
@@ -35,59 +46,110 @@ export function createMemoryRateLimiter(opts: { limit: number; windowMs: number;
   }
 }
 
-export type Counter = {
-  increment(key: string, windowMs: number): Promise<number>
+export type RemoteRateLimit = {
+  limit(key: string): Promise<{ success: boolean; remaining: number; reset: number }>
 }
 
-export function createCounterRateLimiter(opts: { limit: number; windowMs: number; counter: Counter }): RateLimiter {
+const sharedLimiters = new Map<string, RateLimiter>()
+let sharedRedis: Redis | undefined
+
+/**
+ * One limiter per name. Public queries use `memory` (log and serve from the
+ * in-memory window if Redis errors). Login, MFA, and invite binding use
+ * `closed` (throw RateLimitUnavailableError, never the in-memory window).
+ */
+export function getSharedRateLimiter(opts: {
+  name: string
+  limit: number
+  windowMs: number
+  policy: DegradePolicy
+  env?: NodeJS.ProcessEnv
+}): RateLimiter {
+  const cacheKey = `${opts.name}:${opts.policy}:${opts.limit}:${opts.windowMs}`
+  const existing = sharedLimiters.get(cacheKey)
+  if (existing) return existing
+  const created = createResilientRateLimiter(opts)
+  sharedLimiters.set(cacheKey, created)
+  return created
+}
+
+export function createResilientRateLimiter(opts: {
+  name?: string
+  limit: number
+  windowMs: number
+  policy: DegradePolicy
+  env?: NodeJS.ProcessEnv
+  remote?: RemoteRateLimit
+  now?: () => number
+  warn?: (message: string) => void
+}): RateLimiter {
+  const env = opts.env ?? process.env
+  const memory = createMemoryRateLimiter({ limit: opts.limit, windowMs: opts.windowMs, now: opts.now })
+  const remote = opts.remote ?? remoteFromEnv(env, opts)
+  if (!remote) {
+    if (env.NODE_ENV === 'production') {
+      return {
+        async check(): Promise<RateLimitResult> {
+          throw new RateLimitUnavailableError()
+        },
+      }
+    }
+    return memory
+  }
+
+  let warned = false
+  const warn = opts.warn ?? ((message: string) => console.warn(message))
   return {
     async check(key: string): Promise<RateLimitResult> {
-      const count = await opts.counter.increment(key, opts.windowMs)
-      if (count > opts.limit) {
-        return { allowed: false, remaining: 0, retryAfterSec: Math.max(1, Math.ceil(opts.windowMs / 1000)) }
+      try {
+        const result = await remote.limit(key)
+        warned = false
+        const retryAfterSec = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000))
+        if (!result.success) return { allowed: false, remaining: 0, retryAfterSec }
+        return { allowed: true, remaining: result.remaining, retryAfterSec: 0 }
+      } catch (error) {
+        if (error instanceof RateLimitUnavailableError) throw error
+        if (opts.policy === 'closed') throw new RateLimitUnavailableError()
+        if (!warned) {
+          warned = true
+          warn('Upstash rate limit failed; public queries are using the in-memory limiter')
+        }
+        return memory.check(key)
       }
-      return { allowed: true, remaining: opts.limit - count, retryAfterSec: 0 }
     },
   }
 }
 
-export function createRateLimiterFromEnv(
+function remoteFromEnv(
   env: NodeJS.ProcessEnv,
-  opts: { limit: number; windowMs: number },
-): RateLimiter {
+  opts: { name?: string; limit: number; windowMs: number },
+): RemoteRateLimit | null {
   const url = env.UPSTASH_REDIS_REST_URL
   const token = env.UPSTASH_REDIS_REST_TOKEN
-  if (url && token) return createCounterRateLimiter({ ...opts, counter: upstashCounter(url, token) })
-  if (env.NODE_ENV === 'production') {
-    throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production')
-  }
-  return createMemoryRateLimiter(opts)
-}
-
-function upstashCounter(url: string, token: string): Counter {
-  let redis: { incr: (key: string) => Promise<number>; pexpire: (key: string, ms: number) => Promise<unknown> } | undefined
+  if (!url || !token) return null
+  if (!sharedRedis) sharedRedis = new Redis({ url, token })
+  const seconds = Math.max(1, Math.ceil(opts.windowMs / 1000))
+  const ratelimit = new Ratelimit({
+    redis: sharedRedis,
+    limiter: Ratelimit.slidingWindow(opts.limit, `${seconds} s`),
+    prefix: `oxxx:${opts.name ?? 'limit'}`,
+    analytics: false,
+  })
   return {
-    async increment(key: string, windowMs: number): Promise<number> {
-      if (!redis) {
-        const { Redis } = await import('@upstash/redis')
-        redis = new Redis({ url, token })
-      }
-      const bucket = Math.floor(Date.now() / windowMs)
-      const redisKey = `presale:rl:${key}:${bucket}`
-      const count = await redis.incr(redisKey)
-      if (count === 1) await redis.pexpire(redisKey, windowMs)
-      return count
+    async limit(key: string) {
+      const result = await ratelimit.limit(key)
+      return { success: result.success, remaining: result.remaining, reset: result.reset }
     },
   }
 }
 
-/** @deprecated Use createMemoryRateLimiter. Kept so existing tests can construct a limiter. */
+/** @deprecated Prefer createMemoryRateLimiter or getSharedRateLimiter. */
 export function createRateLimiter(opts: { limit: number; windowMs: number; now?: () => number }): RateLimiter {
   return createMemoryRateLimiter(opts)
 }
 
 /**
- * Client address for rate limits.
+ * Client address for public rate limits.
  * On Vercel, `x-real-ip` is set by the platform. Elsewhere we do not trust
  * forwarding headers, so every local caller shares one bucket.
  */

@@ -15,9 +15,10 @@ import { presaleRoutes } from './routes/presale'
 import { storageRoutes } from './routes/storage'
 import { userRoutes } from './routes/users'
 import { createObjectStorage } from './storage'
+import { getSharedRateLimiter, type RateLimiter } from '../../lib/presale-ledger/rate-limit'
 import './types'
 
-export async function buildApp(config: AppConfig) {
+export async function buildApp(config: AppConfig, options?: { authLimiter?: RateLimiter }) {
   const app = Fastify({
     logger: config.NODE_ENV === 'production',
     trustProxy: (_address: string, hop: number) => hop < config.TRUST_PROXY_HOPS,
@@ -58,7 +59,13 @@ export async function buildApp(config: AppConfig) {
   await app.register(swaggerUi, { routePrefix: '/docs' })
 
   const storage = createObjectStorage(config)
-  await authRoutes(app, config)
+  const authLimiter = options?.authLimiter ?? getSharedRateLimiter({
+    name: 'admin-auth',
+    limit: 30,
+    windowMs: 60_000,
+    policy: 'closed',
+  })
+  await authRoutes(app, config, authLimiter)
   await userRoutes(app, config)
   await kycRoutes(app, config, storage)
   await auditRoutes(app, config)
@@ -74,6 +81,7 @@ export async function buildApp(config: AppConfig) {
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
+      if (error.retryAfterSec) reply.header('retry-after', String(error.retryAfterSec))
       return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message } })
     }
     const err = error as { statusCode?: number; message?: string }

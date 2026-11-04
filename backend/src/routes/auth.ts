@@ -11,6 +11,7 @@ import { generateTotpSecret, totpUri, verifyTotp } from '../crypto/totp'
 import { getPrisma } from '../db'
 import { AppError } from '../errors'
 import { requestIp, requestUserAgent } from '../http'
+import { RateLimitUnavailableError, type RateLimiter } from '../../../lib/presale-ledger/rate-limit'
 
 const loginBody = z.object({
   email: z.string().email().max(320),
@@ -46,11 +47,12 @@ const refreshBody = z.object({
 
 let dummyHash: string | null = null
 
-export async function authRoutes(app: FastifyInstance, config: AppConfig) {
+export async function authRoutes(app: FastifyInstance, config: AppConfig, authLimiter: RateLimiter) {
   app.post('/api/v1/auth/login', { schema: { tags: ['auth'], body: loginBody } }, async (request) => {
+    const ip = requestIp(request)
+    await enforceDistributedLimit(authLimiter, `login:${ip}`)
     const body = loginBody.parse(request.body)
     const email = body.email.trim().toLowerCase()
-    const ip = requestIp(request)
     const prisma = getPrisma()
     await assertLoginAllowed(config, ip, email)
     const admin = await prisma.adminUser.findUnique({ where: { email } })
@@ -85,6 +87,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
   })
 
   app.post('/api/v1/auth/mfa', { schema: { tags: ['auth'], body: mfaBody } }, async (request) => {
+    await enforceDistributedLimit(authLimiter, `mfa:${requestIp(request)}`)
     const body = mfaBody.parse(request.body)
     const prisma = getPrisma()
     const challenge = await prisma.mfaChallenge.findUnique({
@@ -101,28 +104,34 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
       ? decryptString(challenge.admin.totpSecretCipher, config.piiKey)
       : ''
     const proof = secret ? verifyTotp(secret, body.code) : null
-    const replay = Boolean(proof && challenge.admin.totpLastStep !== null && proof.step <= challenge.admin.totpLastStep)
-    if (!proof || replay) {
-      const attempts = challenge.admin.mfaFailedAttempts + 1
-      await prisma.adminUser.update({
-        where: { id: challenge.adminId },
-        data: {
-          mfaFailedAttempts: attempts,
-          mfaLockedUntil: attempts >= MFA_MAX_FAILURES ? new Date(Date.now() + MFA_LOCK_MS) : challenge.admin.mfaLockedUntil,
-        },
-      })
+    if (!proof) {
+      await recordMfaFailure(challenge.adminId)
       await writeAudit(prisma, {
         actorId: challenge.adminId,
-        action: replay ? 'auth.mfa.replay' : 'auth.mfa.failure',
+        action: 'auth.mfa.failure',
         ip: requestIp(request),
         userAgent: requestUserAgent(request),
       })
-      throw new AppError(401, replay ? 'totp_replay' : 'invalid_mfa', replay ? 'Authenticator code was already used' : 'Invalid authenticator code')
+      throw new AppError(401, 'invalid_mfa', 'Invalid authenticator code')
     }
-    await prisma.adminUser.update({
-      where: { id: challenge.adminId },
-      data: { totpLastStep: proof.step, mfaFailedAttempts: 0, mfaLockedUntil: null },
-    })
+    const claimed = await claimTotpStep(challenge.adminId, proof.step)
+    if (!claimed) {
+      const current = await prisma.adminUser.findUnique({
+        where: { id: challenge.adminId },
+        select: { mfaLockedUntil: true },
+      })
+      if (current?.mfaLockedUntil && current.mfaLockedUntil.getTime() > Date.now()) {
+        throw new AppError(429, 'mfa_locked', 'Authenticator attempts are locked')
+      }
+      await recordMfaFailure(challenge.adminId)
+      await writeAudit(prisma, {
+        actorId: challenge.adminId,
+        action: 'auth.mfa.replay',
+        ip: requestIp(request),
+        userAgent: requestUserAgent(request),
+      })
+      throw new AppError(401, 'totp_replay', 'Authenticator code was already used')
+    }
     await prisma.mfaChallenge.delete({ where: { id: challenge.id } })
     const session = await issueSession(config, challenge.admin)
     await writeAudit(prisma, {
@@ -167,6 +176,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
   )
 
   app.post('/api/v1/auth/invites/start', { schema: { tags: ['auth'], body: inviteTokenBody } }, async (request) => {
+    await enforceDistributedLimit(authLimiter, `invite-start:${requestIp(request)}`)
     const body = inviteTokenBody.parse(request.body)
     const invite = await loadInvite(body.token)
     const secret = invite.totpSecretCipher
@@ -182,6 +192,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig) {
   })
 
   app.post('/api/v1/auth/invites/redeem', { schema: { tags: ['auth'], body: redeemBody } }, async (request) => {
+    await enforceDistributedLimit(authLimiter, `invite-redeem:${requestIp(request)}`)
     const body = redeemBody.parse(request.body)
     const invite = await loadInvite(body.token)
     if (!invite.totpSecretCipher) throw new AppError(400, 'totp_missing', 'Open the invite before confirming')
@@ -337,6 +348,46 @@ async function loadInvite(token: string) {
     throw new AppError(410, 'invite_invalid', 'Invite is invalid or expired')
   }
   return invite
+}
+
+export async function recordMfaFailure(adminId: string): Promise<number> {
+  const updated = await getPrisma().adminUser.update({
+    where: { id: adminId },
+    data: { mfaFailedAttempts: { increment: 1 } },
+    select: { mfaFailedAttempts: true },
+  })
+  if (updated.mfaFailedAttempts >= MFA_MAX_FAILURES) {
+    await getPrisma().adminUser.update({
+      where: { id: adminId },
+      data: { mfaLockedUntil: new Date(Date.now() + MFA_LOCK_MS) },
+    })
+  }
+  return updated.mfaFailedAttempts
+}
+
+/** One winner for this time-step. `false` means another request already stored this step or a newer one. */
+export async function claimTotpStep(adminId: string, step: number): Promise<boolean> {
+  const updated = await getPrisma().adminUser.updateMany({
+    where: {
+      id: adminId,
+      OR: [{ totpLastStep: null }, { totpLastStep: { lt: step } }],
+    },
+    data: { totpLastStep: step, mfaFailedAttempts: 0, mfaLockedUntil: null },
+  })
+  return updated.count === 1
+}
+
+async function enforceDistributedLimit(limiter: RateLimiter, key: string) {
+  try {
+    const decision = await limiter.check(key)
+    if (!decision.allowed) throw new AppError(429, 'rate_limited', 'Too many requests', decision.retryAfterSec)
+  } catch (error) {
+    if (error instanceof AppError) throw error
+    if (error instanceof RateLimitUnavailableError) {
+      throw new AppError(503, 'rate_limiter_unavailable', 'Authentication is temporarily unavailable', error.retryAfterSec)
+    }
+    throw error
+  }
 }
 
 function delay(ms: number): Promise<void> {

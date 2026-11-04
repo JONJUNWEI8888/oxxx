@@ -1,4 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { RateLimitUnavailableError } from '../../lib/presale-ledger/rate-limit'
+import { buildApp } from '../src/app'
+import { loadConfig } from '../src/config'
+import { claimTotpStep, recordMfaFailure } from '../src/routes/auth'
 import { auth, buildTestApp, createAdmin, login, migrate, PASSWORD, prisma, resetDb, totpCode } from './helpers'
 
 describe('admin auth', () => {
@@ -164,6 +168,65 @@ describe('admin auth', () => {
     })
     expect(replay.statusCode).toBe(401)
     expect(replay.json().error.code).toBe('totp_replay')
+  })
+
+  it('applies concurrent MFA failures and accepts one replay of the same code', async () => {
+    const app = await appPromise
+    const admin = await createAdmin('super_admin', 'root@example.com')
+    const failures = await Promise.all(Array.from({ length: 8 }, () => recordMfaFailure(admin.id)))
+    expect(new Set(failures).size).toBe(8)
+    expect(Math.max(...failures)).toBe(8)
+    const locked = await prisma.adminUser.findUniqueOrThrow({ where: { id: admin.id } })
+    expect(locked.mfaFailedAttempts).toBe(8)
+    expect(locked.mfaLockedUntil).not.toBeNull()
+
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { mfaFailedAttempts: 0, mfaLockedUntil: null, totpLastStep: null },
+    })
+    const claims = await Promise.all(Array.from({ length: 6 }, () => claimTotpStep(admin.id, 40)))
+    expect(claims.filter(Boolean)).toHaveLength(1)
+
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { mfaFailedAttempts: 0, mfaLockedUntil: null, totpLastStep: null },
+    })
+    const started = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'root@example.com', password: PASSWORD },
+    })
+    const code = totpCode()
+    const raced = await Promise.all([
+      app.inject({ method: 'POST', url: '/api/v1/auth/mfa', payload: { mfaToken: started.json().mfaToken, code } }),
+      app.inject({ method: 'POST', url: '/api/v1/auth/mfa', payload: { mfaToken: started.json().mfaToken, code } }),
+    ])
+    expect(raced.filter((res) => res.statusCode === 200)).toHaveLength(1)
+    expect(raced.filter((res) => res.statusCode === 401)).toHaveLength(1)
+  })
+
+  it('fails closed on login, MFA, and invite binding when Redis is down', async () => {
+    const app = await buildApp(loadConfig(), {
+      authLimiter: {
+        async check() {
+          throw new RateLimitUnavailableError(7)
+        },
+      },
+    })
+    await app.ready()
+    const paths = ['/api/v1/auth/login', '/api/v1/auth/mfa', '/api/v1/auth/invites/start', '/api/v1/auth/invites/redeem']
+    for (const url of paths) {
+      const res = await app.inject({
+        method: 'POST',
+        url,
+        payload: { email: 'root@example.com', password: PASSWORD, mfaToken: 'x'.repeat(24), token: 'y'.repeat(24), code: '000000' },
+      })
+      expect(res.statusCode).toBe(503)
+      expect(res.headers['retry-after']).toBe('7')
+      expect(res.json().error.code).toBe('rate_limiter_unavailable')
+    }
+    expect(await prisma.loginAttempt.count()).toBe(0)
+    await app.close()
   })
 
   it('blocks a disabled admin', async () => {

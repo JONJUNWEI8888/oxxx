@@ -12,7 +12,13 @@ import { uint256Hex, padAddressTopic } from './hex'
 import { defaultIndexConfig, runPresaleIndexBatch } from './indexer'
 import { MemoryPresaleRepo } from './memory-repo'
 import { presaleAddressGet, presaleGet } from './public-http'
-import { createRateLimiter, createRateLimiterFromEnv } from './rate-limit'
+import {
+  createMemoryRateLimiter,
+  createRateLimiter,
+  createResilientRateLimiter,
+  getSharedRateLimiter,
+  RateLimitUnavailableError,
+} from './rate-limit'
 import { runPresaleReconciliation } from './reconcile'
 import { HttpRpcClient } from './rpc'
 import { buildPresaleResponse } from './snapshot'
@@ -352,9 +358,49 @@ describe('alerts', () => {
 })
 
 describe('cache and rate limit', () => {
-  it('refuses an in-memory limiter in production when Redis is not configured', () => {
-    expect(() => createRateLimiterFromEnv({ NODE_ENV: 'production' }, { limit: 2, windowMs: 1000 })).toThrow(/UPSTASH/)
-    expect(createRateLimiterFromEnv({ NODE_ENV: 'test' }, { limit: 2, windowMs: 1000 })).toBeTruthy()
+  it('fails closed without Redis in production and falls back only for public queries', async () => {
+    const closed = createResilientRateLimiter({
+      limit: 2,
+      windowMs: 1000,
+      policy: 'closed',
+      env: { NODE_ENV: 'production' },
+    })
+    await expect(closed.check('k')).rejects.toBeInstanceOf(RateLimitUnavailableError)
+    const missing = createResilientRateLimiter({
+      limit: 2,
+      windowMs: 1000,
+      policy: 'memory',
+      env: { NODE_ENV: 'production' },
+    })
+    await expect(missing.check('k')).rejects.toBeInstanceOf(RateLimitUnavailableError)
+
+    const warnings: string[] = []
+    const remote = { limit: async () => { throw new Error('redis down') } }
+    const publicLimiter = createResilientRateLimiter({
+      limit: 1,
+      windowMs: 60_000,
+      policy: 'memory',
+      remote,
+      warn: (message) => warnings.push(message),
+    })
+    expect((await publicLimiter.check('visitor')).allowed).toBe(true)
+    expect((await publicLimiter.check('visitor')).allowed).toBe(false)
+    expect(warnings[0]).toMatch(/in-memory/)
+
+    const adminLimiter = createResilientRateLimiter({
+      limit: 10,
+      windowMs: 60_000,
+      policy: 'closed',
+      remote,
+    })
+    await expect(adminLimiter.check('admin')).rejects.toBeInstanceOf(RateLimitUnavailableError)
+  })
+
+  it('reuses one shared limiter instance', () => {
+    const first = getSharedRateLimiter({ name: 'once-test', limit: 3, windowMs: 1000, policy: 'memory', env: { NODE_ENV: 'test' } })
+    const second = getSharedRateLimiter({ name: 'once-test', limit: 3, windowMs: 1000, policy: 'memory', env: { NODE_ENV: 'test' } })
+    expect(second).toBe(first)
+    expect(createMemoryRateLimiter({ limit: 1, windowMs: 1000 })).not.toBe(first)
   })
 
   it('serves a fresh value without calling the loader again', async () => {

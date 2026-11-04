@@ -8,7 +8,13 @@ import {
 import { normalizeAddress } from './hex'
 import { buildAddressResponse, buildPresaleResponse, type PresaleAddressResponse, type PresalePublicResponse } from './snapshot'
 import { withCache, type RemoteCache } from './cache'
-import { clientIp, createRateLimiterFromEnv, type RateLimiter, type RateLimitResult } from './rate-limit'
+import {
+  clientIp,
+  getSharedRateLimiter,
+  RateLimitUnavailableError,
+  type RateLimiter,
+  type RateLimitResult,
+} from './rate-limit'
 import type { PresaleRepository } from './types'
 
 export type Clock = () => number
@@ -23,10 +29,23 @@ export type PublicHttpDeps = {
   staleMs?: number
 }
 
+const presaleReadLimiter = getSharedRateLimiter({
+  name: 'presale-read',
+  limit: PRESALE_RATE_LIMIT,
+  windowMs: PRESALE_RATE_WINDOW_MS,
+  policy: 'memory',
+})
+
+const presaleAddressLimiter = getSharedRateLimiter({
+  name: 'presale-address',
+  limit: ADDRESS_RATE_LIMIT,
+  windowMs: PRESALE_RATE_WINDOW_MS,
+  policy: 'memory',
+})
+
 export async function presaleGet(request: Request, deps: PublicHttpDeps): Promise<Response> {
-  const limiter = resolveLimiter(deps.limiter, PRESALE_RATE_LIMIT)
-  if (!limiter) return unavailable()
-  const decision = await limiter.check(`presale:${clientIp(request)}`)
+  const decision = await limitOrUnavailable(deps.limiter ?? presaleReadLimiter, `presale:${clientIp(request)}`)
+  if (decision instanceof Response) return decision
   if (!decision.allowed) return rateLimited(decision)
 
   try {
@@ -54,9 +73,8 @@ export async function presaleAddressGet(
   const address = normalizeAddress(addressParam)
   if (!address) return json({ error: 'invalid_address' }, 400, { 'cache-control': 'no-store' })
 
-  const limiter = resolveLimiter(deps.addressLimiter, ADDRESS_RATE_LIMIT)
-  if (!limiter) return unavailable()
-  const decision = await limiter.check(`address:${clientIp(request)}`)
+  const decision = await limitOrUnavailable(deps.addressLimiter ?? presaleAddressLimiter, `address:${clientIp(request)}`)
+  if (decision instanceof Response) return decision
   if (!decision.allowed) return rateLimited(decision)
 
   const limit = addressLimit(request)
@@ -85,18 +103,19 @@ async function loadSnapshot(repo: PresaleRepository, updatedAt: number): Promise
   return buildPresaleResponse({ state, aggregate, updatedAt })
 }
 
-function resolveLimiter(explicit: RateLimiter | undefined, limit: number): RateLimiter | null {
-  if (explicit) return explicit
+async function limitOrUnavailable(limiter: RateLimiter, key: string): Promise<RateLimitResult | Response> {
   try {
-    return createRateLimiterFromEnv(process.env, { limit, windowMs: PRESALE_RATE_WINDOW_MS })
-  } catch {
-    return null
+    return await limiter.check(key)
+  } catch (error) {
+    if (error instanceof RateLimitUnavailableError) return unavailable(error.retryAfterSec)
+    throw error
   }
 }
 
-function unavailable(): Response {
-  return json({ error: 'Unable to read on-chain balance', code: 'ledger_unavailable' }, 503, {
+function unavailable(retryAfterSec = 5): Response {
+  return json({ error: 'Unable to read on-chain balance', code: 'rate_limiter_unavailable' }, 503, {
     'cache-control': 'no-store',
+    'retry-after': String(retryAfterSec),
   })
 }
 
