@@ -8,6 +8,12 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 
 [Continue working on v0 →](https://v0.app/chat/projects/prj_OGomAO1ym2j4uqyvI6MkLHFqDk8z)
 
+## Presale ledger
+
+`GET /api/presale` still returns `raised` and `updatedAt` for the homepage. `raised` is the sum of confirmed USDT transfers into the presale address, not the raw wallet balance. Field definitions, the per-wallet lookup, and how to run the indexer on Vercel Cron or as a worker are in [docs/presale-api.md](docs/presale-api.md).
+
+The admin API, KYC review, and Docker Compose stack are documented in [backend/README.md](backend/README.md)（中文）.
+
 ## Getting Started
 
 First, run the development server:
