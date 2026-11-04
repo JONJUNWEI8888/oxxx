@@ -16,48 +16,41 @@ fetch(`${API}/api/v1/auth/me`, { credentials: 'include' })
 
 ### Cookie
 
-登录第二步（密码通过之后提交 TOTP）会写三枚 Cookie。服务端**不设置 `Domain`**，所以 Cookie 只属于 API 主机，不会发给公开站。
+登录第二步（密码通过之后提交 TOTP）会写三枚 `__Host-` Cookie。服务端**不设置 `Domain`**，并且总是带 `Secure` 和 `Path=/`。浏览器会拒绝把这种 Cookie 放到父域上，所以公开站收不到它。`PUBLIC_BASE_URL` 必须是 `https://`，否则浏览器会丢掉这些 Cookie。
 
-| 名称（HTTP） | 名称（HTTPS，带 `__Host-`） | 内容 |
-| --- | --- | --- |
-| `oxxx_admin_access` | `__Host-oxxx_admin_access` | 访问 JWT，默认 15 分钟 |
-| `oxxx_admin_refresh` | `__Host-oxxx_admin_refresh` | 刷新令牌，默认 7 天 |
-| `oxxx_admin_csrf` | `__Host-oxxx_admin_csrf` | CSRF 令牌，和刷新令牌同时过期 |
+| 名称 | 内容 |
+| --- | --- |
+| `__Host-oxxx_admin_access` | 访问 JWT，默认 15 分钟 |
+| `__Host-oxxx_admin_refresh` | 刷新令牌，默认 7 天 |
+| `__Host-oxxx_admin_csrf` | CSRF 令牌，和刷新令牌同时过期 |
 
-三枚都是 `HttpOnly`、`Path=/`、`SameSite=Lax`。API 的 `PUBLIC_BASE_URL` 是 `https://` 时额外带 `Secure`，名称使用 `__Host-` 前缀。控制台和 API 不在同一个站点（例如 `admin.vercel.app` 调用 `api.oxxx.io`）且 API 是 HTTPS 时，`SameSite` 改为 `None`。本地 `http://` 不能使用 `SameSite=None`，请让控制台和 API 都用 `localhost`（不要一个用 `localhost`、一个用 `127.0.0.1`）。
+三枚都是 `HttpOnly`、`Secure`、`Path=/`、`SameSite=Lax`。控制台和 API 不在同一个站点（例如 `admin.vercel.app` 调用 `api.oxxx.io`）时，`SameSite` 改为 `None`。本地请让两边都用 `localhost`（不要一个用 `localhost`、一个用 `127.0.0.1`）。
 
-响应 JSON 里仍然带 `accessToken` 和 `refreshToken`，方便脚本。浏览器不要把它们存进 `localStorage`。控制台使用 Cookie。
+响应 JSON **不包含** `accessToken` 或 `refreshToken`。会话只存在 Cookie 里。
 
 ### CSRF
 
-带上述任一 Cookie 的 `POST` / `PATCH` / `PUT` / `DELETE` 必须带请求头：
+`csrfToken` 是 `HMAC-SHA256(服务器密钥, 会话 id)`，会话 id 是刷新令牌在数据库里的 id。带上述任一 Cookie 的 `POST` / `PATCH` / `PUT` / `DELETE` 必须带：
 
 ```http
+Content-Type: application/json
 X-CSRF-Token: <csrfToken>
 ```
 
-值来自本次 MFA 或刷新响应的 `csrfToken`，也可以在页面重新打开后请求：
+不是 `application/json` 时返回 `415`，`error.code` 为 `unsupported_media_type`。空的 `text/plain` 也会被拒绝。值来自本次 MFA 或刷新响应的 `csrfToken`，也可以在页面重新打开后请求：
 
 - `GET /api/v1/auth/me`（访问 Cookie 还有效）
-- `GET /api/v1/auth/csrf`（只回显 CSRF Cookie，不要求访问令牌）
+- `GET /api/v1/auth/csrf`（按会话 id 重新计算，不把 Cookie 里的值原样吐出）
 
 不匹配时返回 `403`，`error.code` 为 `csrf_invalid`。只使用 `Authorization: Bearer`、请求里没有这些 Cookie 时，不检查 CSRF。
 
-下面这些接口本身不检查 CSRF：`POST /api/v1/auth/login`、`POST /api/v1/auth/mfa`、`POST /api/v1/auth/invites/start`、`POST /api/v1/auth/invites/redeem`，以及 `/api/v1/internal/*` 和签名对象存储地址。
+豁免名单只有还没有会话的接口：`POST /api/v1/auth/login`、`POST /api/v1/auth/mfa`、`POST /api/v1/auth/invites/start`、`POST /api/v1/auth/invites/redeem`。判断用的是路由模式，不是原始 URL，所以 `/%61pi/v1/...` 这种编码路径一样要带 CSRF。证件上传 `PUT /api/v1/storage/local` 用签名地址，可以不是 JSON；如果请求里同时带了会话 Cookie，仍然要带 CSRF。
 
 ### IP 允许列表
 
-`ADMIN_IP_ALLOWLIST` 是逗号分隔的 IP 或 CIDR（例如 `203.0.113.0/24,2001:db8::/32`）。非空时，下面的路径会先看 `request.ip`：
+`ADMIN_IP_ALLOWLIST` 是逗号分隔的 IP 或 CIDR（例如 `203.0.113.0/24,2001:db8::/32`）。列表打开时，除了 `GET /health`，所有路径都看 `request.ip`，不在列表里返回 `403`，`error.code` 为 `ip_forbidden`。编码路径、大小写和多余斜杠不会绕过。`/docs` 和定时任务 `/api/v1/internal/*` 也在列表里，调用它们的机器必须在允许的网段中。
 
-- `/api/v1/auth`
-- `/api/v1/admin`
-- `/api/v1/users`
-- `/api/v1/kyc`
-- `/api/v1/audit`
-- `/api/v1/presale`
-- `/api/v1/storage`
-
-不在列表里返回 `403`，`error.code` 为 `ip_forbidden`。空字符串表示关闭。开发和测试可以留空；生产环境留空时，进程启动会打警告。`TRUST_PROXY_HOPS=0` 时忽略客户端自己带的 `X-Forwarded-For`。前面只有一层反向代理时设为 `1`。`/health`、`/docs` 和 `/api/v1/internal/*`（定时任务）不受这个列表限制。
+开发和测试可以留空，等于关闭。生产环境留空会拒绝启动。只有显式设置 `ADMIN_IP_ALLOWLIST_DISABLED=true` 才允许所有 IP，进程会打一条醒目的安全日志。别的值（例如 `yes`）不算关闭。`TRUST_PROXY_HOPS=0` 时忽略客户端自己带的 `X-Forwarded-For`。前面只有一层反向代理时设为 `1`。
 
 ### 不被搜索引擎收录
 
@@ -144,7 +137,7 @@ Content-Type: application/json
 | `presale.read` / `presale.export` | 是 | | 是 |
 | `admins.read` / `admins.invite` / `admins.update` | 是 | | |
 
-除了登录、MFA、邀请打开和绑定、健康检查、文档、签名存储地址，请求都要有 Cookie 或 `Authorization: Bearer <accessToken>`。下面每个变更接口在使用 Cookie 时都要带 CSRF。读接口会写审计日志；`GET /api/v1/auth/me` 和 `GET /api/v1/auth/csrf` 不写，避免每次打开页面都记一条。
+除了登录、MFA、邀请打开和绑定、健康检查和签名存储地址，请求都要带登录时写下的 Cookie。变更请求还要带 `Content-Type: application/json` 和 `X-CSRF-Token`。服务端仍接受 `Authorization: Bearer`，但响应 JSON 不会返回这个令牌。读接口会写审计日志；`GET /api/v1/auth/me` 和 `GET /api/v1/auth/csrf` 不写，避免每次打开页面都记一条。
 
 ## 1. 会话
 
@@ -176,9 +169,6 @@ Content-Type: application/json
 
 ```json
 {
-  "tokenType": "Bearer",
-  "accessToken": "…",
-  "refreshToken": "…",
   "expiresIn": 900,
   "csrfToken": "…",
   "admin": {
@@ -190,11 +180,11 @@ Content-Type: application/json
 }
 ```
 
-同时 `Set-Cookie` 三枚会话 Cookie。`permissions` 是完整列表，上面只是示意。动态码错误是 `401 invalid_mfa`，重用是 `401 totp_replay`。
+同时 `Set-Cookie` 三枚 `__Host-` 会话 Cookie。响应里没有访问令牌和刷新令牌。`permissions` 是完整列表，上面只是示意。动态码错误是 `401 invalid_mfa`，重用是 `401 totp_replay`。
 
 ### `POST /api/v1/auth/refresh`
 
-Cookie 会话发送空对象 `{}`，并带 CSRF。脚本可以在 JSON 里传 `refreshToken`。成功响应和 MFA 一样，是一组新令牌和新 Cookie。旧刷新令牌立即作废。
+Cookie 会话发送 `{}`，`Content-Type: application/json`，并带 CSRF。成功响应和 MFA 一样：新的 `csrfToken`、新的 Cookie，没有令牌字段。旧刷新令牌立即作废。
 
 ### `POST /api/v1/auth/logout`
 
@@ -560,10 +550,11 @@ txHash,logIndex,fromAddress,amount,amountRaw,blockNumber,blockTime,confirmations
 | --- | --- |
 | `ADMIN_CONSOLE_ORIGIN` | 控制台源，唯一允许的 CORS 来源。决定 Cookie 的 `SameSite` |
 | `ADMIN_CORS_ORIGINS` | 仅在上面为空时使用 |
-| `ADMIN_IP_ALLOWLIST` | 管理接口 IP/CIDR。空则关闭 |
-| `PUBLIC_BASE_URL` | API 对外地址。`https://` 时 Cookie 为 `Secure` |
+| `ADMIN_IP_ALLOWLIST` | 除 `/health` 外的客户端 IP/CIDR。生产必填，除非下面的开关为 `true` |
+| `ADMIN_IP_ALLOWLIST_DISABLED` | 只有精确的 `true` 才关闭限制，并打安全日志 |
+| `PUBLIC_BASE_URL` | API 对外地址，生产必须是 `https://`，否则浏览器丢掉 `__Host-` Cookie |
 | `TRUST_PROXY_HOPS` | 信任的反向代理层数。允许列表用它算出的客户端 IP |
 | `ACCESS_TOKEN_TTL_SEC` | 访问 Cookie 秒数，默认 900 |
 | `REFRESH_TOKEN_TTL_DAYS` | 刷新 Cookie 和 CSRF Cookie 天数，默认 7 |
 
-生产环境请同时设置 `ADMIN_CONSOLE_ORIGIN` 和 `https://` 的 `PUBLIC_BASE_URL`。需要办公网限制时再填 `ADMIN_IP_ALLOWLIST`。
+生产环境请同时设置 `ADMIN_CONSOLE_ORIGIN`、`https://` 的 `PUBLIC_BASE_URL`，以及 `ADMIN_IP_ALLOWLIST`。审计表只允许插入，数据库触发器会拒绝 `UPDATE` 和 `DELETE`。

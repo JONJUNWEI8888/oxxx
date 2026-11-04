@@ -11,6 +11,7 @@ import { newSecret, sha256, signToken } from '../crypto/tokens'
 import { generateTotpSecret, totpUri, verifyTotp } from '../crypto/totp'
 import { getPrisma } from '../db'
 import { AppError } from '../errors'
+import { csrfTokenForSession, sessionCsrfToken } from '../http/csrf'
 import { clearSessionCookies, cookiePolicy, readCookie, readCookieHeader, setSessionCookies } from '../http/cookies'
 import { requestIp, requestUserAgent } from '../http'
 import { RateLimitUnavailableError, type RateLimiter } from '../../../lib/presale-ledger/rate-limit'
@@ -270,10 +271,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
   app.get(
     '/api/v1/auth/csrf',
     { schema: { tags: ['auth'] } },
-    async (request) => {
-      const csrfToken = readCookie(readCookieHeader(request), cookiePolicy(config).names.csrf)
-      return { csrfToken }
-    },
+    async (request) => ({ csrfToken: await sessionCsrfToken(request, config) }),
   )
 
   app.get(
@@ -290,7 +288,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
         email: admin.email,
         role: admin.role,
         permissions: permissionsFor(admin.role),
-        csrfToken: readCookie(readCookieHeader(request), cookiePolicy(config).names.csrf),
+        csrfToken: await sessionCsrfToken(request, config),
       }
     },
   )
@@ -326,26 +324,23 @@ export async function createAdminInvite(
 
 async function issueSession(config: AppConfig, admin: AdminUser, reply: FastifyReply) {
   const prisma = getPrisma()
-  const accessToken = await signToken(
-    { sub: admin.id, role: admin.role, tv: admin.tokenVersion, scope: 'access' },
-    config,
-    config.ACCESS_TOKEN_TTL_SEC,
-  )
   const refreshToken = newSecret()
-  const csrfToken = newSecret()
-  await prisma.refreshToken.create({
+  const session = await prisma.refreshToken.create({
     data: {
       adminId: admin.id,
       tokenHash: sha256(refreshToken),
       expiresAt: new Date(Date.now() + config.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
     },
   })
+  const accessToken = await signToken(
+    { sub: admin.id, role: admin.role, tv: admin.tokenVersion, scope: 'access', sid: session.id },
+    config,
+    config.ACCESS_TOKEN_TTL_SEC,
+  )
+  const csrfToken = csrfTokenForSession(session.id, config.JWT_SECRET)
   await prisma.adminUser.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } })
   setSessionCookies(reply, config, { accessToken, refreshToken, csrfToken })
   return {
-    tokenType: 'Bearer' as const,
-    accessToken,
-    refreshToken,
     expiresIn: config.ACCESS_TOKEN_TTL_SEC,
     csrfToken,
     admin: {

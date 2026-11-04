@@ -3,6 +3,7 @@ import { PRESALE } from '../../lib/presale'
 import { buildApp } from '../src/app'
 import { loadConfig } from '../src/config'
 import {
+  accessTokenFromSetCookie,
   auth,
   buildTestApp,
   createAdmin,
@@ -31,13 +32,17 @@ describe('admin console API', () => {
     const support = await loginCookies(app, 'support@example.com')
     for (const cookie of support.cookies) {
       expect(cookie).toContain('HttpOnly')
+      expect(cookie).toContain('Secure')
       expect(cookie).toContain('SameSite=Lax')
       expect(cookie).toContain('Path=/')
       expect(cookie).not.toMatch(/Domain=/i)
     }
-    expect(support.cookies.some((cookie) => cookie.startsWith('oxxx_admin_access='))).toBe(true)
-    expect(support.cookies.some((cookie) => cookie.startsWith('oxxx_admin_refresh='))).toBe(true)
-    expect(support.cookies.some((cookie) => cookie.startsWith('oxxx_admin_csrf='))).toBe(true)
+    expect(support.cookies.some((cookie) => cookie.startsWith('__Host-oxxx_admin_access='))).toBe(true)
+    expect(support.cookies.some((cookie) => cookie.startsWith('__Host-oxxx_admin_refresh='))).toBe(true)
+    expect(support.cookies.some((cookie) => cookie.startsWith('__Host-oxxx_admin_csrf='))).toBe(true)
+    expect(support.body.accessToken).toBeUndefined()
+    expect(support.body.refreshToken).toBeUndefined()
+    expect(support.body.tokenType).toBeUndefined()
 
     const me = await app.inject({
       method: 'GET',
@@ -129,8 +134,20 @@ describe('admin console API', () => {
       method: 'POST',
       url: '/api/v1/internal/presale/index',
       remoteAddress: '198.51.100.8',
+      payload: {},
     })
-    expect(cron.statusCode).toBe(401)
+    expect(cron.statusCode).toBe(403)
+    expect(cron.json().error.code).toBe('ip_forbidden')
+    for (const url of ['/%61pi/v1/auth/login', '/API/v1/auth/login', '//api/v1/auth/login', '/api//v1/auth/login']) {
+      const disguised = await blockedApp.inject({
+        method: 'POST',
+        url,
+        remoteAddress: '198.51.100.8',
+        payload: { email: 'nobody@example.com', password: 'not-the-password' },
+      })
+      expect(disguised.statusCode, url).toBe(403)
+      expect(disguised.json().error.code).toBe('ip_forbidden')
+    }
     const allowedIp = await blockedApp.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
@@ -330,7 +347,12 @@ describe('admin console API', () => {
     expect(detail.json().documents[0].download.expiresInSec).toBe(120)
     expect(detail.json().personal.documentNumber).toBe('ID-9988')
 
-    const approved = await app.inject({ method: 'POST', url: `/api/v1/kyc/${id}/approve`, headers: auth(reviewer) })
+    const approved = await app.inject({
+      method: 'POST',
+      url: `/api/v1/kyc/${id}/approve`,
+      headers: auth(reviewer),
+      payload: {},
+    })
     expect(approved.statusCode).toBe(200)
     const again = await app.inject({ method: 'GET', url: `/api/v1/kyc/${id}`, headers: auth(reviewer) })
     expect(again.json().history.map((event: { action: string }) => event.action)).toContain('kyc.approve')
@@ -487,6 +509,89 @@ describe('admin console API', () => {
     expect(audit.json().total).toBe(1)
     expect(audit.json().items[0].metadata).toMatchObject({ reason: 'left the team' })
     expect(audit.json()).toMatchObject({ page: 1, pageSize: 20 })
+    await expect(prisma.auditLog.updateMany({ data: { action: 'tamper' } })).rejects.toThrow(/append-only/)
+    await expect(prisma.$executeRaw`DELETE FROM audit_logs`).rejects.toThrow(/append-only/)
+  })
+
+  it('requires CSRF and JSON on encoded routes and keeps one super admin under a race', async () => {
+    const app = await appPromise
+    await createAdmin('kyc_reviewer', 'review@example.com')
+    const reviewer = await loginCookies(app, 'review@example.com')
+    const token = accessTokenFromSetCookie(reviewer.cookies)
+    const rootAdmin = await createAdmin('super_admin', 'root@example.com')
+    const root = await login(app, 'root@example.com')
+    const user = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users',
+      headers: auth(root),
+      payload: { email: 'ada@example.com' },
+    })
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/kyc',
+      headers: auth(root),
+      payload: {
+        userId: user.json().id,
+        level: 'basic',
+        personal: {
+          legalName: 'Ada',
+          dateOfBirth: '1990-01-02',
+          country: 'SG',
+          documentType: 'passport',
+          documentNumber: 'P123',
+        },
+      },
+    })
+    expect(user.statusCode).toBe(200)
+    expect(created.statusCode, JSON.stringify(created.json())).toBe(200)
+    const id = created.json().id as string
+    expect(id).toMatch(/^[0-9a-f-]{36}$/i)
+    const encoded = await app.inject({
+      method: 'POST',
+      url: `/%61pi/v1/kyc/${id}/approve`,
+      headers: { cookie: cookieHeader(reviewer.cookies), 'content-type': 'application/json' },
+      payload: {},
+    })
+    expect(encoded.statusCode).toBe(403)
+    expect(encoded.json().error.code).toBe('csrf_invalid')
+    const plain = await app.inject({
+      method: 'POST',
+      url: `/api/v1/kyc/${id}/approve`,
+      headers: { ...auth(token), 'content-type': 'text/plain' },
+    })
+    expect(plain.statusCode).toBe(415)
+    expect(plain.json().error.code).toBe('unsupported_media_type')
+    const refreshed = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/refresh',
+      headers: { cookie: cookieHeader(reviewer.cookies), 'x-csrf-token': reviewer.csrf, 'content-type': 'application/json' },
+      payload: {},
+    })
+    expect(refreshed.statusCode).toBe(200)
+    expect(refreshed.json().accessToken).toBeUndefined()
+    expect(refreshed.json().refreshToken).toBeUndefined()
+    expect(refreshed.json().csrfToken).toEqual(expect.any(String))
+
+    const other = await createAdmin('super_admin', 'other@example.com')
+    const otherToken = await login(app, 'other@example.com')
+    const [left, right] = await Promise.all([
+      app.inject({
+        method: 'PATCH',
+        url: `/api/v1/admin/admins/${other.id}`,
+        headers: auth(root),
+        payload: { role: 'support' },
+      }),
+      app.inject({
+        method: 'PATCH',
+        url: `/api/v1/admin/admins/${rootAdmin.id}`,
+        headers: auth(otherToken),
+        payload: { role: 'support' },
+      }),
+    ])
+    expect([left.statusCode, right.statusCode].sort()).toEqual([200, 409])
+    const denied = [left, right].find((res) => res.statusCode === 409)
+    expect(denied?.json().error.code).toBe('last_super_admin')
+    expect(await prisma.adminUser.count({ where: { role: 'super_admin', status: 'active' } })).toBe(1)
   })
 })
 
@@ -512,7 +617,11 @@ async function loginCookies(app: Awaited<ReturnType<typeof buildTestApp>>, email
     payload: { mfaToken: start.json().mfaToken, code: totpCode() },
   })
   expect(mfa.statusCode).toBe(200)
-  return { cookies: headerList(mfa.headers['set-cookie']), csrf: mfa.json().csrfToken as string }
+  return {
+    cookies: headerList(mfa.headers['set-cookie']),
+    csrf: mfa.json().csrfToken as string,
+    body: mfa.json() as { accessToken?: string; refreshToken?: string; tokenType?: string },
+  }
 }
 
 function contribution(fromAddress: string, txHash: string, logIndex: number, amountRaw: string, confirmations: number) {

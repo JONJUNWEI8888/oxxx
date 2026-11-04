@@ -173,6 +173,15 @@ async function assertKeepsSuperAdmin(
 ) {
   const removes = admin.role === 'super_admin' && admin.status === 'active' && next !== 'super_admin'
   if (!removes) return
+  await tx.$queryRaw`
+    SELECT id FROM admin_users
+    WHERE role = 'super_admin'::"admin_role"
+      AND status = 'active'::"admin_status"
+    ORDER BY id
+    FOR UPDATE
+  `
+  const fresh = await tx.adminUser.findUnique({ where: { id: admin.id }, select: { role: true, status: true } })
+  if (!fresh || fresh.role !== 'super_admin' || fresh.status !== 'active') return
   const others = await tx.adminUser.count({
     where: { role: 'super_admin', status: 'active', NOT: { id: admin.id } },
   })

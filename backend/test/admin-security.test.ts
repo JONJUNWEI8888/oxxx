@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import './env'
+import { createHmac } from 'node:crypto'
 import { loadConfig, startupWarnings } from '../src/config'
+import { csrfTokenForSession } from '../src/http/csrf'
 import { cookiePolicy, serializeCookie } from '../src/http/cookies'
 import { ipInAllowlist, parseAllowlist } from '../src/net/ip-allowlist'
 
@@ -18,16 +20,20 @@ describe('admin network and cookie policy', () => {
     expect(() => parseAllowlist('not-an-ip')).toThrow(/ADMIN_IP_ALLOWLIST/)
   })
 
-  it('keeps session cookies host-only and Secure only on https', () => {
+  it('binds the CSRF token to the session id and keeps __Host- cookies', () => {
+    expect(csrfTokenForSession('session-id', 'server-secret')).toBe(
+      createHmac('sha256', 'server-secret').update('session-id').digest('base64url'),
+    )
     const local = cookiePolicy({
       NODE_ENV: 'development',
-      PUBLIC_BASE_URL: 'http://127.0.0.1:4000',
+      PUBLIC_BASE_URL: 'http://localhost:4000',
       consoleOrigin: 'http://localhost:3000',
     })
-    expect(local.secure).toBe(false)
+    expect(local.secure).toBe(true)
     expect(local.sameSite).toBe('lax')
-    expect(local.names.access).toBe('oxxx_admin_access')
-    const localCookie = serializeCookie(local.names.access, 'token', {
+    expect(local.names.access).toBe('__Host-oxxx_admin_access')
+    expect(local.names.csrf).toBe('__Host-oxxx_admin_csrf')
+    const localCookie = serializeCookie(local.names.csrf, 'token', {
       maxAge: 60,
       httpOnly: true,
       secure: local.secure,
@@ -35,8 +41,8 @@ describe('admin network and cookie policy', () => {
     })
     expect(localCookie).toContain('HttpOnly')
     expect(localCookie).toContain('SameSite=Lax')
+    expect(localCookie).toContain('Secure')
     expect(localCookie).not.toMatch(/Domain=/i)
-    expect(localCookie).not.toContain('Secure')
 
     const sameSite = cookiePolicy({
       NODE_ENV: 'production',
@@ -73,17 +79,25 @@ describe('admin network and cookie policy', () => {
     })
     expect(startupWarnings(base)).toEqual([])
 
-    const open = loadConfig({
+    expect(() =>
+      loadConfig({
+        ...process.env,
+        NODE_ENV: 'production',
+        PUBLIC_BASE_URL: 'https://api.oxxx.io',
+        ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
+        ADMIN_IP_ALLOWLIST: '',
+        ADMIN_IP_ALLOWLIST_DISABLED: 'yes',
+      }),
+    ).toThrow(/Refusing to start/)
+    const disabled = loadConfig({
       ...process.env,
       NODE_ENV: 'production',
-      PUBLIC_BASE_URL: 'http://localhost:4000',
-      ADMIN_CONSOLE_ORIGIN: '',
+      PUBLIC_BASE_URL: 'https://api.oxxx.io',
+      ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
       ADMIN_IP_ALLOWLIST: '',
+      ADMIN_IP_ALLOWLIST_DISABLED: 'true',
     })
-    const warnings = startupWarnings(open)
-    expect(warnings.join('\n')).toMatch(/ADMIN_IP_ALLOWLIST/)
-    expect(warnings.join('\n')).toMatch(/ADMIN_CONSOLE_ORIGIN/)
-    expect(warnings.join('\n')).toMatch(/not https/)
+    expect(startupWarnings(disabled).join('\n')).toMatch(/ADMIN_IP_ALLOWLIST_DISABLED/)
     expect(loadConfig({ ...process.env, ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io' }).corsOrigins).toEqual([
       'https://admin.oxxx.io',
     ])

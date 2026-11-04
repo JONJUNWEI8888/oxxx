@@ -62,7 +62,7 @@ describe('presale admin', () => {
     const exported = await prisma.auditLog.findFirst({ where: { action: 'presale.subscriptions.export' } })
     expect(exported).toBeTruthy()
 
-    const missing = await app.inject({ method: 'POST', url: '/api/v1/internal/presale/index' })
+    const missing = await app.inject({ method: 'POST', url: '/api/v1/internal/presale/index', payload: {} })
     expect(missing.statusCode).toBe(401)
   })
 })

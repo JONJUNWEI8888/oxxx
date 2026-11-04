@@ -19,24 +19,36 @@ export function ipInAllowlist(ip: string, ranges: readonly CidrRange[]): boolean
   return ranges.some((range) => matches(normalized, range))
 }
 
-const RESTRICTED_PREFIXES = [
-  '/api/v1/auth',
-  '/api/v1/admin',
-  '/api/v1/users',
-  '/api/v1/kyc',
-  '/api/v1/audit',
-  '/api/v1/presale',
-  '/api/v1/storage',
-]
+/** Routes that stay reachable when the IP allowlist is on. Everything else is denied. */
+const PUBLIC_ROUTES = new Set(['/health'])
 
-/** Admin console and auth routes. Cron (`/api/v1/internal`) stays off this list. */
-export function isAdminNetworkRoute(url: string): boolean {
-  const path = url.split('?')[0] ?? url
-  return RESTRICTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+/**
+ * Default-deny. Uses the decoded path, not a prefix of the raw URL, so `/%61pi/...`,
+ * mixed case, and extra slashes are not treated as public.
+ */
+export function isPublicPath(url: string): boolean {
+  return PUBLIC_ROUTES.has(decodePathname(url))
+}
+
+/** Matched route pattern after Fastify routing. Unknown routes are not public. */
+export function isPublicRoute(routePattern: string | undefined): boolean {
+  return routePattern !== undefined && PUBLIC_ROUTES.has(routePattern)
+}
+
+export function decodePathname(url: string): string {
+  const raw = (url.split('?')[0] ?? url).split('#')[0] ?? url
+  let decoded = raw
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {
+    return raw
+  }
+  if (decoded.length > 1 && decoded.endsWith('/')) decoded = decoded.replace(/\/+$/, '')
+  return decoded || '/'
 }
 
 export function isNoIndexRoute(url: string): boolean {
-  const path = url.split('?')[0] ?? url
+  const path = decodePathname(url).toLowerCase()
   return path.startsWith('/api/') || path === '/docs' || path.startsWith('/docs/')
 }
 

@@ -13,8 +13,10 @@ const envSchema = z.object({
   ADMIN_CORS_ORIGINS: z.string().default('http://localhost:3000'),
   /** Single admin-console origin, for example https://admin.oxxx.io. No path. */
   ADMIN_CONSOLE_ORIGIN: z.string().default(''),
-  /** Comma-separated IPs and CIDRs. Empty disables the allowlist. */
+  /** Comma-separated IPs and CIDRs. Required in production unless the opt-out below is exactly "true". */
   ADMIN_IP_ALLOWLIST: z.string().default(''),
+  /** Set to the exact string "true" to allow every client IP. Production logs this loudly. */
+  ADMIN_IP_ALLOWLIST_DISABLED: z.string().default(''),
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   LOCAL_STORAGE_DIR: z.string().default('./var/storage'),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:4000'),
@@ -40,6 +42,8 @@ export type AppConfig = z.infer<typeof envSchema> & {
   /** The admin console origin. Null when the legacy CORS list is in use. */
   consoleOrigin: string | null
   ipAllowlist: CidrRange[]
+  /** True only when ADMIN_IP_ALLOWLIST_DISABLED is exactly "true". */
+  ipAllowlistDisabled: boolean
   piiKey: Buffer
 }
 
@@ -56,21 +60,33 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const message = error instanceof Error ? error.message : 'ADMIN_IP_ALLOWLIST is invalid'
     throw new Error(message)
   }
+  const ipAllowlistDisabled = parsed.ADMIN_IP_ALLOWLIST_DISABLED === 'true'
+  if (parsed.NODE_ENV === 'production') {
+    if (ipAllowlistDisabled && ipAllowlist.length > 0) {
+      throw new Error('ADMIN_IP_ALLOWLIST_DISABLED=true conflicts with a non-empty ADMIN_IP_ALLOWLIST')
+    }
+    if (!ipAllowlistDisabled && ipAllowlist.length === 0) {
+      throw new Error(
+        'Refusing to start: production requires ADMIN_IP_ALLOWLIST (comma-separated CIDRs). Set ADMIN_IP_ALLOWLIST_DISABLED=true only to explicitly allow every client IP.',
+      )
+    }
+  }
   const legacyOrigins = parsed.ADMIN_CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
   return {
     ...parsed,
     consoleOrigin,
     corsOrigins: consoleOrigin ? [consoleOrigin] : legacyOrigins,
     ipAllowlist,
+    ipAllowlistDisabled,
     piiKey: decodeKey(parsed.PII_ENCRYPTION_KEY),
   }
 }
 
 export function startupWarnings(config: AppConfig): string[] {
   const warnings: string[] = []
-  if (config.NODE_ENV === 'production' && config.ipAllowlist.length === 0) {
+  if (config.ipAllowlistDisabled) {
     warnings.push(
-      'ADMIN_IP_ALLOWLIST is empty in production. Auth and admin routes are not restricted by client IP.',
+      'SECURITY: ADMIN_IP_ALLOWLIST_DISABLED=true — every client IP can reach admin and auth routes. Do not use this opt-out in a real deployment.',
     )
   }
   if (config.NODE_ENV === 'production' && !config.consoleOrigin) {

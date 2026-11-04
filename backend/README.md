@@ -120,7 +120,7 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 | POST | `/api/v1/internal/presale/index` | `Authorization: Bearer $CRON_SECRET` |
 | POST | `/api/v1/internal/presale/reconcile` | 同上 |
 
-错误体为 `{ "error": { "code", "message" } }`。浏览器会话、CSRF、权限字段和给前端的字段说明见 [docs/admin-api.md](../docs/admin-api.md)。CORS 在设置了 `ADMIN_CONSOLE_ORIGIN` 时只反射这一个来源；否则才使用 `ADMIN_CORS_ORIGINS`。生产环境如果 `ADMIN_IP_ALLOWLIST` 为空，进程启动时会打警告。
+错误体为 `{ "error": { "code", "message" } }`。浏览器会话、CSRF、权限字段和给前端的字段说明见 [docs/admin-api.md](../docs/admin-api.md)。CORS 在设置了 `ADMIN_CONSOLE_ORIGIN` 时只反射这一个来源；否则才使用 `ADMIN_CORS_ORIGINS`。生产环境如果 `ADMIN_IP_ALLOWLIST` 为空且没有把 `ADMIN_IP_ALLOWLIST_DISABLED` 设成精确的 `true`，进程拒绝启动。Cookie 名称固定为 `__Host-`，响应 JSON 不返回访问令牌或刷新令牌。
 
 KYC 证件默认存在本机 `var/storage`，通过 HMAC 签名地址读写，没有公开列表。生产把 `STORAGE_DRIVER=s3`，并设置 `S3_ENDPOINT`、`S3_BUCKET`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`。接口只返回预签名 URL，桶本身不公开。
 

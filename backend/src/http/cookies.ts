@@ -21,23 +21,20 @@ type CookieConfig = {
 }
 
 /**
- * Host-only session cookies. `Domain` is never set, so the cookie is not shared with the public site.
- * `SameSite=None` is used only when the console and the API are different sites and the API is HTTPS.
+ * `__Host-` cookies: Secure, Path=/, and no Domain, so the browser rejects a parent-domain scope.
+ * SameSite=None is used only when the console and the API are different sites.
  */
 export function cookiePolicy(config: CookieConfig): CookiePolicy {
-  const secure = config.PUBLIC_BASE_URL.startsWith('https:')
   const crossSite = Boolean(
     config.consoleOrigin && !sameRegistrableSite(config.consoleOrigin, config.PUBLIC_BASE_URL),
   )
-  const sameSite = secure && crossSite ? 'none' : 'lax'
-  const prefix = secure ? '__Host-' : ''
   return {
-    secure,
-    sameSite,
+    secure: true,
+    sameSite: crossSite ? 'none' : 'lax',
     names: {
-      access: `${prefix}${BASE_NAMES.access}`,
-      refresh: `${prefix}${BASE_NAMES.refresh}`,
-      csrf: `${prefix}${BASE_NAMES.csrf}`,
+      access: `__Host-${BASE_NAMES.access}`,
+      refresh: `__Host-${BASE_NAMES.refresh}`,
+      csrf: `__Host-${BASE_NAMES.csrf}`,
     },
   }
 }
@@ -45,7 +42,7 @@ export function cookiePolicy(config: CookieConfig): CookiePolicy {
 export function cookieSecurityWarning(config: CookieConfig): string | null {
   if (config.NODE_ENV !== 'production') return null
   if (!config.PUBLIC_BASE_URL.startsWith('https:')) {
-    return 'PUBLIC_BASE_URL is not https. Admin session cookies are not marked Secure. Serve the admin API on HTTPS before exposing it.'
+    return 'PUBLIC_BASE_URL is not https. __Host- session cookies are Secure and browsers will drop them on plain HTTP.'
   }
   if (config.consoleOrigin && !sameRegistrableSite(config.consoleOrigin, config.PUBLIC_BASE_URL)) {
     return 'ADMIN_CONSOLE_ORIGIN is a different site from PUBLIC_BASE_URL. Session cookies use SameSite=None; Secure and stay host-only on the API.'
