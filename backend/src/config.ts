@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { cookieSecurityWarning } from './http/cookies'
+import { parseAllowlist, type CidrRange } from './net/ip-allowlist'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -7,7 +9,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
   PII_ENCRYPTION_KEY: z.string().min(1),
+  /** Legacy comma-separated origins. Ignored when ADMIN_CONSOLE_ORIGIN is set. */
   ADMIN_CORS_ORIGINS: z.string().default('http://localhost:3000'),
+  /** Single admin-console origin, for example https://admin.oxxx.io. No path. */
+  ADMIN_CONSOLE_ORIGIN: z.string().default(''),
+  /** Comma-separated IPs and CIDRs. Empty disables the allowlist. */
+  ADMIN_IP_ALLOWLIST: z.string().default(''),
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   LOCAL_STORAGE_DIR: z.string().default('./var/storage'),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:4000'),
@@ -28,7 +35,11 @@ const envSchema = z.object({
 })
 
 export type AppConfig = z.infer<typeof envSchema> & {
+  /** Origins the browser may call with credentials. One entry when ADMIN_CONSOLE_ORIGIN is set. */
   corsOrigins: string[]
+  /** The admin console origin. Null when the legacy CORS list is in use. */
+  consoleOrigin: string | null
+  ipAllowlist: CidrRange[]
   piiKey: Buffer
 }
 
@@ -37,11 +48,54 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (parsed.STORAGE_DRIVER === 's3' && (!parsed.S3_BUCKET || !parsed.S3_ACCESS_KEY_ID || !parsed.S3_SECRET_ACCESS_KEY)) {
     throw new Error('S3 storage requires S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY')
   }
+  const consoleOrigin = parseConsoleOrigin(parsed.ADMIN_CONSOLE_ORIGIN)
+  let ipAllowlist: CidrRange[] = []
+  try {
+    ipAllowlist = parseAllowlist(parsed.ADMIN_IP_ALLOWLIST)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'ADMIN_IP_ALLOWLIST is invalid'
+    throw new Error(message)
+  }
+  const legacyOrigins = parsed.ADMIN_CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
   return {
     ...parsed,
-    corsOrigins: parsed.ADMIN_CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
+    consoleOrigin,
+    corsOrigins: consoleOrigin ? [consoleOrigin] : legacyOrigins,
+    ipAllowlist,
     piiKey: decodeKey(parsed.PII_ENCRYPTION_KEY),
   }
+}
+
+export function startupWarnings(config: AppConfig): string[] {
+  const warnings: string[] = []
+  if (config.NODE_ENV === 'production' && config.ipAllowlist.length === 0) {
+    warnings.push(
+      'ADMIN_IP_ALLOWLIST is empty in production. Auth and admin routes are not restricted by client IP.',
+    )
+  }
+  if (config.NODE_ENV === 'production' && !config.consoleOrigin) {
+    warnings.push(
+      'ADMIN_CONSOLE_ORIGIN is unset. CORS is falling back to ADMIN_CORS_ORIGINS. Set ADMIN_CONSOLE_ORIGIN to the admin console origin.',
+    )
+  }
+  const cookieWarning = cookieSecurityWarning(config)
+  if (cookieWarning) warnings.push(cookieWarning)
+  return warnings
+}
+
+function parseConsoleOrigin(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  let url: URL
+  try {
+    url = new URL(trimmed)
+  } catch {
+    throw new Error('ADMIN_CONSOLE_ORIGIN must be an absolute origin, for example https://admin.oxxx.io')
+  }
+  if (url.username || url.password || url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
+    throw new Error('ADMIN_CONSOLE_ORIGIN must be an origin without a path, query, or credentials')
+  }
+  return url.origin
 }
 
 function decodeKey(value: string): Buffer {

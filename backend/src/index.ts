@@ -1,8 +1,9 @@
 import { buildApp } from './app'
-import { loadConfig } from './config'
+import { loadConfig, startupWarnings } from './config'
 
 const config = loadConfig()
 const app = await buildApp(config)
+for (const warning of startupWarnings(config)) app.log.warn(warning)
 
 try {
   await app.listen({ port: config.PORT, host: config.HOST })

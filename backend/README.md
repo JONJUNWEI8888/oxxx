@@ -79,7 +79,7 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 
 ## 主要接口
 
-除健康检查、登录、MFA 和带签名的对象存储地址外，请求都要带 `Authorization: Bearer <accessToken>`。
+除健康检查、登录、MFA、邀请打开/绑定和带签名的对象存储地址外，请求要带 `Authorization: Bearer <accessToken>`，或带登录时写下的 HttpOnly Cookie。Cookie 的变更请求还要带 `X-CSRF-Token`。细节见 [docs/admin-api.md](../docs/admin-api.md)。
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -90,8 +90,13 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 | POST | `/api/v1/auth/invites/redeem` | 设置密码并完成绑定 |
 | POST | `/api/v1/auth/refresh` | 刷新 |
 | POST | `/api/v1/auth/logout` | 登出 |
-| GET | `/api/v1/auth/me` | 当前管理员 |
-| GET | `/api/v1/users` | `q`（邮箱、手机或用户 id）、`status`、分页 |
+| GET | `/api/v1/auth/me` | 当前管理员、角色和权限 |
+| GET | `/api/v1/auth/csrf` | 用 Cookie 换回 CSRF 明文 |
+| GET | `/api/v1/admin/admins` | 超级管理员列出管理员 |
+| POST | `/api/v1/admin/invites` | 同上，创建邀请 |
+| PATCH | `/api/v1/admin/admins/:id` | 修改角色，旧会话失效 |
+| POST | `/api/v1/admin/admins/:id/disable` | 禁用管理员 |
+| GET | `/api/v1/users` | `status`、`kycStatus`、创建时间、邮箱或手机精确搜索、分页 |
 | POST | `/api/v1/users` | 运营代建用户。交易站注册是 v2 |
 | GET | `/api/v1/users/:id` | 详情，含最近一条 KYC 状态 |
 | POST | `/api/v1/users/:id/freeze` | 仅 `active` → `frozen` |
@@ -99,18 +104,23 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 | POST | `/api/v1/users/:id/ban` | `active` 或 `frozen` → `banned` |
 | GET | `/api/v1/kyc` | `status`、`level`、分页 |
 | POST | `/api/v1/kyc` | 代建申请 |
-| GET | `/api/v1/kyc/:id` | 解密后的个人资料，不含公开文件地址 |
+| GET | `/api/v1/kyc/:id` | 个人资料、短时证件 URL、审核记录 |
+| GET | `/api/v1/kyc/history` | 已审核记录。默认不含 `pending` |
 | POST | `/api/v1/kyc/:id/approve` | 仅 `pending` |
 | POST | `/api/v1/kyc/:id/reject` | body `{ "reason": "..." }`，必填 |
 | POST | `/api/v1/kyc/:id/documents` | 返回短时上传地址 |
 | GET | `/api/v1/kyc/:id/documents/:docId/url` | 返回短时下载地址 |
-| GET | `/api/v1/audit` | `actorId`、`action`、`targetType`、时间范围、分页 |
-| GET | `/api/v1/presale/subscriptions` | `address`、`txHash`、分页 |
-| GET | `/api/v1/presale/subscriptions.csv` | 同一过滤条件，最多 10 万行 |
+| GET | `/api/v1/audit` | `actorId`、`action`、`targetType`、`targetId`、时间范围、分页 |
+| GET | `/api/v1/presale/summary` | 已确认与未满 15 确认的合计 |
+| GET | `/api/v1/presale/subscribers` | 按地址汇总。默认不含只有未确认转账的地址 |
+| GET | `/api/v1/presale/subscribers/:address/transfers` | 该地址的转账 |
+| GET | `/api/v1/presale/subscribers.csv` | 流式 CSV，最多 10 万行 |
+| GET | `/api/v1/presale/subscriptions` | `address`、`txHash`、分页。默认不含未满 15 确认 |
+| GET | `/api/v1/presale/subscriptions.csv` | 流式 CSV，同一过滤条件，最多 10 万行 |
 | POST | `/api/v1/internal/presale/index` | `Authorization: Bearer $CRON_SECRET` |
 | POST | `/api/v1/internal/presale/reconcile` | 同上 |
 
-错误体为 `{ "error": { "code", "message" } }`。CORS 只反射 `ADMIN_CORS_ORIGINS` 里的来源。
+错误体为 `{ "error": { "code", "message" } }`。浏览器会话、CSRF、权限字段和给前端的字段说明见 [docs/admin-api.md](../docs/admin-api.md)。CORS 在设置了 `ADMIN_CONSOLE_ORIGIN` 时只反射这一个来源；否则才使用 `ADMIN_CORS_ORIGINS`。生产环境如果 `ADMIN_IP_ALLOWLIST` 为空，进程启动时会打警告。
 
 KYC 证件默认存在本机 `var/storage`，通过 HMAC 签名地址读写，没有公开列表。生产把 `STORAGE_DRIVER=s3`，并设置 `S3_ENDPOINT`、`S3_BUCKET`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`。接口只返回预签名 URL，桶本身不公开。
 
@@ -138,7 +148,7 @@ KYC 证件默认存在本机 `var/storage`，通过 HMAC 签名地址读写，�
 ## v2 还没做
 
 - 把现有登录 / 注册 / 交易页接到用户体系，用户自行提交 KYC
-- 加密字段的模糊搜索、管理员禁用和 TOTP 恢复码
+- 加密字段的模糊搜索，以及 TOTP 恢复码
 - 把登录失败的 Postgres 计数也换成与 Upstash 同一套策略的多副本视图（现在密码失败次数已在 Postgres 里原子自增，分布式闸门在 Redis）
 - 收款地址转出的账务处理，避免归集资金时对账告警
 - 管理界面本身
