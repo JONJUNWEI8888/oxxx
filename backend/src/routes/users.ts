@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import type { AdminRole, UserStatus } from '@prisma/client'
+import { Prisma, type AdminRole, type UserStatus } from '@prisma/client'
 import { z } from 'zod'
 import { writeAudit } from '../audit'
 import { requirePermission } from '../auth/guard'
@@ -15,7 +15,12 @@ const createBody = z.object({
 
 const listQuery = z.object({
   q: z.string().max(320).optional(),
+  email: z.string().email().max(320).optional(),
+  phone: z.string().min(6).max(32).optional(),
   status: z.enum(['active', 'frozen', 'banned']).optional(),
+  kycStatus: z.enum(['pending', 'approved', 'rejected', 'none']).optional(),
+  createdFrom: z.string().datetime().optional(),
+  createdTo: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 })
@@ -66,10 +71,12 @@ export async function userRoutes(app: FastifyInstance, config: AppConfig) {
     },
     async (request) => {
       const query = listQuery.parse(request.query)
-      const where = {
-        ...(query.status ? { status: query.status } : {}),
-        ...searchWhere(query.q, config),
+      const kycIds = query.kycStatus ? await userIdsForKycStatus(query.kycStatus) : null
+      if (kycIds && kycIds.length === 0) {
+        await writeAudit(prisma, audit(request, 'user.list', 'user', null, listAuditMeta(query, 0)))
+        return { items: [], page: query.page, pageSize: query.pageSize, total: 0 }
       }
+      const where = userListWhere(query, config, kycIds)
       const [total, rows] = await prisma.$transaction([
         prisma.user.count({ where }),
         prisma.user.findMany({
@@ -77,11 +84,19 @@ export async function userRoutes(app: FastifyInstance, config: AppConfig) {
           orderBy: { createdAt: 'desc' },
           skip: (query.page - 1) * query.pageSize,
           take: query.pageSize,
+          include: {
+            applications: { orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }], take: 1 },
+          },
         }),
       ])
-      await writeAudit(prisma, audit(request, 'user.list', 'user', null, { page: query.page, total }))
+      await writeAudit(prisma, audit(request, 'user.list', 'user', null, listAuditMeta(query, total)))
       return {
-        items: rows.map((row) => presentUser(row, config, request.admin?.role ?? 'support')),
+        items: rows.map((row) => ({
+          ...presentUser(row, config, request.admin?.role ?? 'support'),
+          kyc: row.applications[0]
+            ? { id: row.applications[0].id, level: row.applications[0].level, status: row.applications[0].status }
+            : null,
+        })),
         page: query.page,
         pageSize: query.pageSize,
         total,
@@ -204,11 +219,62 @@ export function maskPhone(phone: string): string {
   return `${phone.slice(0, 2)}***${phone.slice(-2)}`
 }
 
-function searchWhere(q: string | undefined, config: AppConfig) {
+function userListWhere(
+  query: z.infer<typeof listQuery>,
+  config: AppConfig,
+  kycIds: string[] | null,
+): Prisma.UserWhereInput {
+  const and: Prisma.UserWhereInput[] = []
+  if (query.status) and.push({ status: query.status })
+  if (query.createdFrom || query.createdTo) {
+    and.push({
+      createdAt: {
+        ...(query.createdFrom ? { gte: new Date(query.createdFrom) } : {}),
+        ...(query.createdTo ? { lte: new Date(query.createdTo) } : {}),
+      },
+    })
+  }
+  const searched = searchWhere(query.q, config)
+  if (Object.keys(searched).length > 0) and.push(searched)
+  if (query.email) and.push({ emailHash: blindIndex(query.email.trim().toLowerCase(), config.piiKey) })
+  if (query.phone) and.push({ phoneHash: blindIndex(query.phone.trim(), config.piiKey) })
+  if (kycIds) and.push({ id: { in: kycIds } })
+  return and.length > 0 ? { AND: and } : {}
+}
+
+function listAuditMeta(query: z.infer<typeof listQuery>, total: number) {
+  return {
+    page: query.page,
+    total,
+    status: query.status ?? null,
+    kycStatus: query.kycStatus ?? null,
+    createdFrom: query.createdFrom ?? null,
+    createdTo: query.createdTo ?? null,
+    search: query.email ? 'email' : query.phone ? 'phone' : query.q ? 'q' : null,
+  }
+}
+
+async function userIdsForKycStatus(status: 'pending' | 'approved' | 'rejected' | 'none'): Promise<string[]> {
+  const rows = await getPrisma().$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT u.id
+    FROM users u
+    LEFT JOIN LATERAL (
+      SELECT status::text AS status
+      FROM kyc_applications k
+      WHERE k.user_id = u.id
+      ORDER BY k.submitted_at DESC, k.created_at DESC
+      LIMIT 1
+    ) latest ON true
+    WHERE ${status === 'none' ? Prisma.sql`latest.status IS NULL` : Prisma.sql`latest.status = ${status}`}
+  `)
+  return rows.map((row) => row.id)
+}
+
+function searchWhere(q: string | undefined, config: AppConfig): Prisma.UserWhereInput {
   if (!q?.trim()) return {}
   const value = q.trim()
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return { id: value }
-  if (value.includes('@')) return { emailHash: blindIndex(value, config.piiKey) }
+  if (value.includes('@')) return { emailHash: blindIndex(value.toLowerCase(), config.piiKey) }
   return { phoneHash: blindIndex(value, config.piiKey) }
 }
 

@@ -34,7 +34,11 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL is required}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
       ADMIN_TOTP_SECRET: ${ADMIN_TOTP_SECRET:?ADMIN_TOTP_SECRET is required}
+      ADMIN_CONSOLE_ORIGIN: ${ADMIN_CONSOLE_ORIGIN:-}
       ADMIN_CORS_ORIGINS: ${ADMIN_CORS_ORIGINS:-http://localhost:3000}
+      ADMIN_IP_ALLOWLIST: ${ADMIN_IP_ALLOWLIST:-}
+      # Local compose runs NODE_ENV=production. Set a real CIDR list and "false" outside this machine.
+      ADMIN_IP_ALLOWLIST_DISABLED: ${ADMIN_IP_ALLOWLIST_DISABLED:-true}
       STORAGE_DRIVER: local
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:4000}
       CRON_SECRET: ${CRON_SECRET:?CRON_SECRET is required}

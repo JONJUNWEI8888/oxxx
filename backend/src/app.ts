@@ -7,6 +7,10 @@ import Fastify from 'fastify'
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod'
 import type { AppConfig } from './config'
 import { AppError } from './errors'
+import { assertCsrf, assertJsonContentType } from './http/csrf'
+import { requestIp } from './http'
+import { ipInAllowlist, isNoIndexRoute, isPublicPath, isPublicRoute } from './net/ip-allowlist'
+import { adminRoutes } from './routes/admins'
 import { auditRoutes } from './routes/audit'
 import { authRoutes } from './routes/auth'
 import { internalRoutes } from './routes/internal'
@@ -37,7 +41,8 @@ export async function buildApp(config: AppConfig, options?: { authLimiter?: Rate
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'authorization', 'x-cron-secret'],
+    allowedHeaders: ['content-type', 'authorization', 'x-cron-secret', 'x-csrf-token'],
+    exposedHeaders: ['retry-after'],
   })
   await app.register(rateLimit, { max: config.RATE_LIMIT_MAX, timeWindow: '1 minute' })
   await app.register(swagger, {
@@ -46,17 +51,29 @@ export async function buildApp(config: AppConfig, options?: { authLimiter?: Rate
         title: 'OXXX Admin API',
         version: '1.0.0',
         description:
-          'Admin API for exchange users, KYC review, audit history, and presale subscription ledger. Every route checks a role.',
+          'Admin API for the separate admin console. Authorization is enforced on the server. GET /api/v1/auth/me returns permissions only so the UI can hide controls. Browser sessions use __Host- HttpOnly Secure cookies (Path=/, no Domain) and do not receive access or refresh tokens in JSON. Cookie-authenticated mutations require X-CSRF-Token, which is HMAC(server secret, session id), and Content-Type application/json. CORS allows only ADMIN_CONSOLE_ORIGIN when that variable is set. Production refuses to start unless ADMIN_IP_ALLOWLIST is set or ADMIN_IP_ALLOWLIST_DISABLED=true. The allowlist is default-deny except /health and uses request.ip after TRUST_PROXY_HOPS. Responses under /api and /docs send X-Robots-Tag: noindex.',
       },
       components: {
         securitySchemes: {
           bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+          cookieAuth: { type: 'apiKey', in: 'cookie', name: '__Host-oxxx_admin_access' },
+          csrfHeader: { type: 'apiKey', in: 'header', name: 'X-CSRF-Token' },
         },
       },
     },
     transform: jsonSchemaTransform,
   })
   await app.register(swaggerUi, { routePrefix: '/docs' })
+
+  app.addHook('onRequest', async (request, reply) => {
+    if (isNoIndexRoute(request.url)) reply.header('x-robots-tag', 'noindex, nofollow')
+    assertClientIp(config, requestIp(request), isPublicPath(request.url))
+  })
+  app.addHook('preValidation', async (request) => {
+    assertClientIp(config, requestIp(request), isPublicRoute(request.routeOptions?.url))
+    assertJsonContentType(request)
+    await assertCsrf(request, config)
+  })
 
   const storage = createObjectStorage(config)
   const authLimiter = options?.authLimiter ?? getSharedRateLimiter({
@@ -66,6 +83,7 @@ export async function buildApp(config: AppConfig, options?: { authLimiter?: Rate
     policy: 'closed',
   })
   await authRoutes(app, config, authLimiter)
+  await adminRoutes(app, config)
   await userRoutes(app, config)
   await kycRoutes(app, config, storage)
   await auditRoutes(app, config)
@@ -92,9 +110,19 @@ export async function buildApp(config: AppConfig, options?: { authLimiter?: Rate
     if (statusCode === 400) {
       return reply.code(400).send({ error: { code: 'validation_error', message: err.message ?? 'Invalid request' } })
     }
+    if (statusCode === 415) {
+      return reply.code(415).send({ error: { code: 'unsupported_media_type', message: 'Content-Type must be application/json' } })
+    }
     request.log.error(error)
     return reply.code(500).send({ error: { code: 'internal_error', message: 'Internal error' } })
   })
 
   return app
+}
+
+function assertClientIp(config: AppConfig, ip: string, isPublic: boolean) {
+  if (isPublic || config.ipAllowlistDisabled || config.ipAllowlist.length === 0) return
+  if (!ipInAllowlist(ip, config.ipAllowlist)) {
+    throw new AppError(403, 'ip_forbidden', 'This network is not allowed to call the admin API')
+  }
 }

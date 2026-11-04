@@ -48,6 +48,7 @@ describe('kyc review', () => {
       method: 'POST',
       url: `/api/v1/kyc/${id}/approve`,
       headers: auth(reviewerToken),
+      payload: {},
     })
     expect(approved.statusCode).toBe(200)
     expect(approved.json()).toMatchObject({ status: 'approved', rejectReason: null })
@@ -61,6 +62,7 @@ describe('kyc review', () => {
       method: 'POST',
       url: `/api/v1/kyc/${id}/approve`,
       headers: auth(reviewerToken),
+      payload: {},
     })
     expect(again.statusCode).toBe(409)
 
@@ -91,6 +93,7 @@ describe('kyc review', () => {
       method: 'POST',
       url: `/api/v1/kyc/${second.json().id}/approve`,
       headers: auth(supportToken),
+      payload: {},
     })
     expect(supportReject.statusCode).toBe(403)
 

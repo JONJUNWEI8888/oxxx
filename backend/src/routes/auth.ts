@@ -1,7 +1,8 @@
-import type { FastifyInstance } from 'fastify'
-import type { AdminUser } from '@prisma/client'
+import type { FastifyInstance, FastifyReply } from 'fastify'
+import type { AdminRole, AdminUser } from '@prisma/client'
 import { z } from 'zod'
 import { writeAudit } from '../audit'
+import { permissionsFor } from '../auth/rbac'
 import { requireAdmin, requirePermission } from '../auth/guard'
 import type { AppConfig } from '../config'
 import { decryptString, encryptString } from '../crypto/pii'
@@ -10,6 +11,8 @@ import { newSecret, sha256, signToken } from '../crypto/tokens'
 import { generateTotpSecret, totpUri, verifyTotp } from '../crypto/totp'
 import { getPrisma } from '../db'
 import { AppError } from '../errors'
+import { csrfTokenForSession, sessionCsrfToken } from '../http/csrf'
+import { clearSessionCookies, cookiePolicy, readCookie, readCookieHeader, setSessionCookies } from '../http/cookies'
 import { requestIp, requestUserAgent } from '../http'
 import { RateLimitUnavailableError, type RateLimiter } from '../../../lib/presale-ledger/rate-limit'
 
@@ -42,7 +45,7 @@ const MFA_MAX_FAILURES = 5
 const MFA_LOCK_MS = 15 * 60 * 1000
 
 const refreshBody = z.object({
-  refreshToken: z.string().min(20),
+  refreshToken: z.string().min(20).optional(),
 })
 
 let dummyHash: string | null = null
@@ -86,7 +89,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
     return { status: 'mfa' as const, mfaToken }
   })
 
-  app.post('/api/v1/auth/mfa', { schema: { tags: ['auth'], body: mfaBody } }, async (request) => {
+  app.post('/api/v1/auth/mfa', { schema: { tags: ['auth'], body: mfaBody } }, async (request, reply) => {
     await enforceDistributedLimit(authLimiter, `mfa:${requestIp(request)}`)
     const body = mfaBody.parse(request.body)
     const prisma = getPrisma()
@@ -133,7 +136,7 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
       throw new AppError(401, 'totp_replay', 'Authenticator code was already used')
     }
     await prisma.mfaChallenge.delete({ where: { id: challenge.id } })
-    const session = await issueSession(config, challenge.admin)
+    const session = await issueSession(config, challenge.admin, reply)
     await writeAudit(prisma, {
       actorId: challenge.adminId,
       action: 'auth.mfa.success',
@@ -151,27 +154,10 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
     },
     async (request) => {
       const body = inviteBody.parse(request.body)
-      const email = body.email.trim().toLowerCase()
-      const token = newSecret()
-      const prisma = getPrisma()
-      await prisma.adminInvite.create({
-        data: {
-          email,
-          role: body.role,
-          tokenHash: sha256(token),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          createdById: request.admin?.id,
-        },
-      })
-      await writeAudit(prisma, {
-        actorId: request.admin?.id,
-        action: 'auth.invite.create',
-        targetType: 'admin_invite',
-        metadata: { emailHash: sha256(email), role: body.role },
+      return createAdminInvite(request.admin?.id, body, {
         ip: requestIp(request),
         userAgent: requestUserAgent(request),
       })
-      return { token, email, role: body.role, expiresInSec: 24 * 60 * 60 }
     },
   )
 
@@ -244,66 +230,125 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
     return { ok: true }
   })
 
-  app.post('/api/v1/auth/refresh', { schema: { tags: ['auth'], body: refreshBody } }, async (request) => {
-    const body = refreshBody.parse(request.body)
+  app.post('/api/v1/auth/refresh', { schema: { tags: ['auth'], body: refreshBody } }, async (request, reply) => {
+    const body = refreshBody.parse(request.body ?? {})
+    const refreshToken = body.refreshToken || readCookie(readCookieHeader(request), cookiePolicy(config).names.refresh)
+    if (!refreshToken) throw new AppError(401, 'invalid_refresh', 'Refresh token is invalid')
     const prisma = getPrisma()
     const row = await prisma.refreshToken.findUnique({
-      where: { tokenHash: sha256(body.refreshToken) },
+      where: { tokenHash: sha256(refreshToken) },
       include: { admin: true },
     })
     if (!row || row.revokedAt || row.expiresAt.getTime() < Date.now() || row.admin.status !== 'active') {
       throw new AppError(401, 'invalid_refresh', 'Refresh token is invalid')
     }
     await prisma.refreshToken.update({ where: { id: row.id }, data: { revokedAt: new Date() } })
-    const session = await issueSession(config, row.admin)
+    const session = await issueSession(config, row.admin, reply)
     await writeAudit(prisma, { actorId: row.adminId, action: 'auth.refresh', ip: requestIp(request) })
     return session
   })
 
-  app.post('/api/v1/auth/logout', { schema: { tags: ['auth'], body: refreshBody } }, async (request) => {
-    const body = refreshBody.parse(request.body)
+  app.post('/api/v1/auth/logout', { schema: { tags: ['auth'], body: refreshBody } }, async (request, reply) => {
+    const body = refreshBody.parse(request.body ?? {})
+    const secrets = [
+      body.refreshToken,
+      readCookie(readCookieHeader(request), cookiePolicy(config).names.refresh),
+    ].filter((value): value is string => Boolean(value))
     const prisma = getPrisma()
-    const row = await prisma.refreshToken.findUnique({ where: { tokenHash: sha256(body.refreshToken) } })
-    if (row && !row.revokedAt) {
-      await prisma.refreshToken.update({ where: { id: row.id }, data: { revokedAt: new Date() } })
-      await writeAudit(prisma, { actorId: row.adminId, action: 'auth.logout', ip: requestIp(request) })
+    let actorId: string | undefined
+    for (const tokenHash of new Set(secrets.map(sha256))) {
+      const row = await prisma.refreshToken.findUnique({ where: { tokenHash } })
+      if (row && !row.revokedAt) {
+        await prisma.refreshToken.update({ where: { id: row.id }, data: { revokedAt: new Date() } })
+        actorId = row.adminId
+      }
     }
+    if (actorId) await writeAudit(prisma, { actorId, action: 'auth.logout', ip: requestIp(request) })
+    clearSessionCookies(reply, config)
     return { ok: true }
   })
 
   app.get(
+    '/api/v1/auth/csrf',
+    { schema: { tags: ['auth'] } },
+    async (request) => ({ csrfToken: await sessionCsrfToken(request, config) }),
+  )
+
+  app.get(
     '/api/v1/auth/me',
-    { preHandler: requireAdmin(config), schema: { tags: ['auth'], security: [{ bearerAuth: [] }] } },
+    {
+      preHandler: requireAdmin(config),
+      schema: { tags: ['auth'], security: [{ bearerAuth: [] }, { cookieAuth: [] }] },
+    },
     async (request) => {
       const admin = request.admin
       if (!admin) throw new AppError(401, 'unauthorized', 'Missing access token')
-      return { id: admin.id, email: admin.email, role: admin.role }
+      return {
+        id: admin.id,
+        email: admin.email,
+        role: admin.role,
+        permissions: permissionsFor(admin.role),
+        csrfToken: await sessionCsrfToken(request, config),
+      }
     },
   )
 }
 
-async function issueSession(config: AppConfig, admin: AdminUser) {
+export async function createAdminInvite(
+  actorId: string | undefined,
+  input: { email: string; role: AdminRole },
+  meta: { ip: string | null; userAgent: string | null },
+) {
+  const email = input.email.trim().toLowerCase()
+  const token = newSecret()
   const prisma = getPrisma()
-  const accessToken = await signToken(
-    { sub: admin.id, role: admin.role, tv: admin.tokenVersion, scope: 'access' },
-    config,
-    config.ACCESS_TOKEN_TTL_SEC,
-  )
+  await prisma.adminInvite.create({
+    data: {
+      email,
+      role: input.role,
+      tokenHash: sha256(token),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      createdById: actorId,
+    },
+  })
+  await writeAudit(prisma, {
+    actorId,
+    action: 'auth.invite.create',
+    targetType: 'admin_invite',
+    metadata: { emailHash: sha256(email), role: input.role },
+    ip: meta.ip,
+    userAgent: meta.userAgent,
+  })
+  return { token, email, role: input.role, expiresInSec: 24 * 60 * 60 }
+}
+
+async function issueSession(config: AppConfig, admin: AdminUser, reply: FastifyReply) {
+  const prisma = getPrisma()
   const refreshToken = newSecret()
-  await prisma.refreshToken.create({
+  const session = await prisma.refreshToken.create({
     data: {
       adminId: admin.id,
       tokenHash: sha256(refreshToken),
       expiresAt: new Date(Date.now() + config.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
     },
   })
+  const accessToken = await signToken(
+    { sub: admin.id, role: admin.role, tv: admin.tokenVersion, scope: 'access', sid: session.id },
+    config,
+    config.ACCESS_TOKEN_TTL_SEC,
+  )
+  const csrfToken = csrfTokenForSession(session.id, config.JWT_SECRET)
   await prisma.adminUser.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } })
+  setSessionCookies(reply, config, { accessToken, refreshToken, csrfToken })
   return {
-    tokenType: 'Bearer' as const,
-    accessToken,
-    refreshToken,
     expiresIn: config.ACCESS_TOKEN_TTL_SEC,
-    admin: { id: admin.id, email: admin.email, role: admin.role },
+    csrfToken,
+    admin: {
+      id: admin.id,
+      email: admin.email,
+      role: admin.role,
+      permissions: permissionsFor(admin.role),
+    },
   }
 }
 

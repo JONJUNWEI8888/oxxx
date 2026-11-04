@@ -80,7 +80,16 @@ export async function login(app: Awaited<ReturnType<typeof buildTestApp>>, email
     payload: { mfaToken: body.mfaToken, code: totpCode() },
   })
   expect(mfa.statusCode).toBe(200)
-  return mfa.json().accessToken as string
+  expect(mfa.json().accessToken).toBeUndefined()
+  expect(mfa.json().refreshToken).toBeUndefined()
+  return accessTokenFromSetCookie(mfa.headers['set-cookie'])
+}
+
+export function accessTokenFromSetCookie(setCookie: string | string[] | undefined): string {
+  const list = !setCookie ? [] : Array.isArray(setCookie) ? setCookie : [setCookie]
+  const raw = list.find((cookie) => cookie.startsWith('__Host-oxxx_admin_access='))
+  if (!raw) throw new Error('access cookie missing')
+  return decodeURIComponent(raw.slice('__Host-oxxx_admin_access='.length).split(';')[0] ?? '')
 }
 
 export function auth(token: string) {
