@@ -7,7 +7,7 @@ import { requireAdmin, requirePermission } from '../auth/guard'
 import type { AppConfig } from '../config'
 import { decryptString, encryptString } from '../crypto/pii'
 import { hashPassword, verifyPassword } from '../crypto/password'
-import { newSecret, sha256, signToken } from '../crypto/tokens'
+import { newSecret, sha256, signToken, verifyToken } from '../crypto/tokens'
 import { generateTotpSecret, totpUri, verifyTotp } from '../crypto/totp'
 import { getPrisma } from '../db'
 import { AppError } from '../errors'
@@ -250,18 +250,35 @@ export async function authRoutes(app: FastifyInstance, config: AppConfig, authLi
 
   app.post('/api/v1/auth/logout', { schema: { tags: ['auth'], body: refreshBody } }, async (request, reply) => {
     const body = refreshBody.parse(request.body ?? {})
-    const secrets = [
-      body.refreshToken,
-      readCookie(readCookieHeader(request), cookiePolicy(config).names.refresh),
-    ].filter((value): value is string => Boolean(value))
+    const names = cookiePolicy(config).names
+    const secrets = [body.refreshToken, readCookie(readCookieHeader(request), names.refresh)].filter(
+      (value): value is string => Boolean(value),
+    )
     const prisma = getPrisma()
+    const sessionIds = new Set<string>()
     let actorId: string | undefined
     for (const tokenHash of new Set(secrets.map(sha256))) {
       const row = await prisma.refreshToken.findUnique({ where: { tokenHash } })
-      if (row && !row.revokedAt) {
-        await prisma.refreshToken.update({ where: { id: row.id }, data: { revokedAt: new Date() } })
-        actorId = row.adminId
+      if (row) sessionIds.add(row.id)
+    }
+    const access = readCookie(readCookieHeader(request), names.access)
+    if (access) {
+      try {
+        sessionIds.add((await verifyToken(access, config)).sid)
+      } catch {
+        // A bad access cookie does not keep the refresh session alive.
       }
+    }
+    if (sessionIds.size > 0) {
+      const rows = await prisma.refreshToken.findMany({
+        where: { id: { in: [...sessionIds] }, revokedAt: null },
+        select: { adminId: true },
+      })
+      await prisma.refreshToken.updateMany({
+        where: { id: { in: [...sessionIds] }, revokedAt: null },
+        data: { revokedAt: new Date() },
+      })
+      actorId = rows[0]?.adminId
     }
     if (actorId) await writeAudit(prisma, { actorId, action: 'auth.logout', ip: requestIp(request) })
     clearSessionCookies(reply, config)
@@ -337,7 +354,7 @@ async function issueSession(config: AppConfig, admin: AdminUser, reply: FastifyR
     config,
     config.ACCESS_TOKEN_TTL_SEC,
   )
-  const csrfToken = csrfTokenForSession(session.id, config.JWT_SECRET)
+  const csrfToken = csrfTokenForSession(session.id, config.CSRF_SECRET)
   await prisma.adminUser.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } })
   setSessionCookies(reply, config, { accessToken, refreshToken, csrfToken })
   return {

@@ -52,13 +52,27 @@ pnpm --filter @oxxx/admin dev
 DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 ```
 
+## 生产数据库角色
+
+迁移用表的所有者连接（`DATABASE_MIGRATION_URL`）。跑着的 API 用另一个角色 `oxxx_app`（`DATABASE_URL`）。`oxxx_app` 不是所有者，所以不能 `DROP` 或 `DISABLE` 触发器。其它业务表可以增删改查。`audit_logs` 只有 `INSERT` 和 `SELECT`。`UPDATE`、`DELETE`、`TRUNCATE` 会被触发器拒绝。
+
+容器启动时，入口脚本先用所有者跑 `prisma migrate deploy` 和 `backend/src/scripts/ensure-app-role.ts`（需要 `APP_DB_PASSWORD`），种子数据也用所有者写入，然后再切回 `DATABASE_URL` 启动进程。不用镜像入口时，在迁移之后用所有者执行：
+
+```bash
+# 把 prisma/production-app-role.sql 里的 CHANGE_ME 换成应用密码。
+# 角色已经存在时，改用文件里注释着的 ALTER ROLE。
+psql "$DATABASE_MIGRATION_URL" -f prisma/production-app-role.sql
+```
+
+测试清库的账号是表的所有者。它会先 `DISABLE TRIGGER audit_logs_no_truncate`，再 `TRUNCATE`，最后把触发器打开。触发器开着的时候，`TRUNCATE audit_logs` 会失败。
+
 ## 认证和权限
 
 密码使用 Argon2id。登录成功后不会直接发访问令牌：
 
 1. `POST /api/v1/auth/login` 校验密码。未完成邀请注册的账号返回 `enrollment_required`，不会发绑定令牌。
 2. `POST /api/v1/auth/mfa` 提交 6 位动态码。失败次数记在账号上，重新登录不会清零；连续 5 次锁定 15 分钟。用过的时间步会记下来，同一动态码不能再用。
-3. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 作废刷新令牌。
+3. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 撤销这次会话，已经发出的访问令牌马上不能再用。
 4. `POST /api/v1/auth/invites` 由超级管理员创建一次性邀请。`POST /api/v1/auth/invites/start` 展示 TOTP，`POST /api/v1/auth/invites/redeem` 设置密码并完成绑定。
 
 密码失败按 **IP + 账号** 计数，并随次数变慢。只知道邮箱不能把管理员从别的 IP 锁死。同一 IP 的总失败次数另有上限。失败次数用数据库里的原子自增，锁定与否看自增后的返回值。TOTP 时间步用带条件的 `updateMany` 抢占，同一动态码并发提交只有一次成功。客户端 IP 只取 Fastify 按 `TRUST_PROXY_HOPS` 算出的 `request.ip`，不直接读 `X-Forwarded-For`。

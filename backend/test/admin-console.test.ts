@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PRESALE } from '../../lib/presale'
+import { csrfTokenForSession } from '../src/http/csrf'
 import { buildApp } from '../src/app'
 import { loadConfig } from '../src/config'
 import {
@@ -592,6 +593,38 @@ describe('admin console API', () => {
     const denied = [left, right].find((res) => res.statusCode === 409)
     expect(denied?.json().error.code).toBe('last_super_admin')
     expect(await prisma.adminUser.count({ where: { role: 'super_admin', status: 'active' } })).toBe(1)
+  })
+
+  it('rejects TRUNCATE on audit_logs while the trigger is enabled', async () => {
+    await expect(prisma.$executeRawUnsafe('TRUNCATE TABLE audit_logs')).rejects.toThrow(/append-only/)
+  })
+
+  it('rejects an access token captured before logout', async () => {
+    const app = await appPromise
+    await createAdmin('support', 'gone@example.com')
+    const session = await loginCookies(app, 'gone@example.com')
+    const captured = accessTokenFromSetCookie(session.cookies)
+    const row = await prisma.refreshToken.findFirstOrThrow({
+      where: { admin: { email: 'gone@example.com' }, revokedAt: null },
+    })
+    expect(session.csrf).toBe(csrfTokenForSession(row.id, process.env.CSRF_SECRET ?? ''))
+    expect(session.csrf).not.toBe(csrfTokenForSession(row.id, process.env.JWT_SECRET ?? ''))
+    const before = await app.inject({ method: 'GET', url: '/api/v1/users', headers: auth(captured) })
+    expect(before.statusCode).toBe(200)
+    const loggedOut = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: {
+        cookie: cookieHeader(session.cookies),
+        'content-type': 'application/json',
+        'x-csrf-token': session.csrf,
+      },
+      payload: {},
+    })
+    expect(loggedOut.statusCode).toBe(200)
+    const after = await app.inject({ method: 'GET', url: '/api/v1/users', headers: auth(captured) })
+    expect(after.statusCode).toBe(401)
+    expect(after.json().error.code).toBe('unauthorized')
   })
 })
 

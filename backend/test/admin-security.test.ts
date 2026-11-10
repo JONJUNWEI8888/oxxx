@@ -104,6 +104,29 @@ describe('admin network and cookie policy', () => {
     expect(() => loadConfig({ ...process.env, ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io/app' })).toThrow(
       /ADMIN_CONSOLE_ORIGIN/,
     )
+    expect(() =>
+      loadConfig({
+        ...process.env,
+        NODE_ENV: 'production',
+        PUBLIC_BASE_URL: 'https://api.oxxx.io',
+        ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
+        ADMIN_IP_ALLOWLIST: '203.0.113.0/24',
+        CSRF_SECRET: 'short',
+      }),
+    ).toThrow(/CSRF_SECRET/)
+    expect(() =>
+      loadConfig({
+        ...process.env,
+        NODE_ENV: 'production',
+        PUBLIC_BASE_URL: 'https://api.oxxx.io',
+        ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
+        ADMIN_IP_ALLOWLIST: '203.0.113.0/24',
+        CSRF_SECRET: '',
+      }),
+    ).toThrow(/CSRF_SECRET is required in production/)
+    const dev = loadConfig({ ...process.env, NODE_ENV: 'development', CSRF_SECRET: '' })
+    expect(dev.CSRF_SECRET.length).toBeGreaterThanOrEqual(32)
+    expect(dev.CSRF_SECRET).not.toBe(dev.JWT_SECRET)
   })
 
   it('publishes the console routes in openapi.json', () => {

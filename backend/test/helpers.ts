@@ -27,23 +27,30 @@ export async function migrate() {
 }
 
 export async function resetDb() {
-  await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE
-      audit_logs,
-      kyc_documents,
-      kyc_applications,
-      admin_refresh_tokens,
-      mfa_challenges,
-      login_attempts,
-      admin_invites,
-      admin_users,
-      users,
-      presale_contributions,
-      presale_checkpoints,
-      presale_reconciliations,
-      presale_indexer_state
-    RESTART IDENTITY CASCADE
-  `)
+  // The test role owns audit_logs, so it may disable the truncate trigger.
+  // Production's oxxx_app role cannot. TRUNCATE itself must keep failing while the trigger is on.
+  await prisma.$executeRawUnsafe(`ALTER TABLE audit_logs DISABLE TRIGGER audit_logs_no_truncate`)
+  try {
+    await prisma.$executeRawUnsafe(`
+      TRUNCATE TABLE
+        audit_logs,
+        kyc_documents,
+        kyc_applications,
+        admin_refresh_tokens,
+        mfa_challenges,
+        login_attempts,
+        admin_invites,
+        admin_users,
+        users,
+        presale_contributions,
+        presale_checkpoints,
+        presale_reconciliations,
+        presale_indexer_state
+      RESTART IDENTITY CASCADE
+    `)
+  } finally {
+    await prisma.$executeRawUnsafe(`ALTER TABLE audit_logs ENABLE TRIGGER audit_logs_no_truncate`)
+  }
 }
 
 export async function createAdmin(role: AdminRole, email: string, opts?: { totpEnabled?: boolean }) {

@@ -7,6 +7,7 @@ import { cookiePolicy, readCookie, readCookieHeader } from './cookies'
 
 type CsrfConfig = {
   JWT_SECRET: string
+  CSRF_SECRET: string
   NODE_ENV: string
   PUBLIC_BASE_URL: string
   consoleOrigin: string | null
@@ -74,7 +75,7 @@ async function expectedCsrf(request: FastifyRequest, config: CsrfConfig): Promis
   if (access) {
     try {
       const claims = await verifyToken(access, config)
-      return csrfTokenForSession(claims.sid, config.JWT_SECRET)
+      return csrfTokenForSession(claims.sid, config.CSRF_SECRET)
     } catch {
       // Fall through to the refresh cookie when the access cookie is expired.
     }
@@ -83,7 +84,7 @@ async function expectedCsrf(request: FastifyRequest, config: CsrfConfig): Promis
   if (!refresh) return null
   const row = await getPrisma().refreshToken.findUnique({ where: { tokenHash: sha256(refresh) } })
   if (!row || row.revokedAt || row.expiresAt.getTime() < Date.now()) return null
-  return csrfTokenForSession(row.id, config.JWT_SECRET)
+  return csrfTokenForSession(row.id, config.CSRF_SECRET)
 }
 
 function headerToken(request: FastifyRequest): string {

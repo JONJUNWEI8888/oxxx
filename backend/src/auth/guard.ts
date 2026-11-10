@@ -38,6 +38,15 @@ async function authenticate(request: FastifyRequest, config: AppConfig) {
   if (!admin || admin.status !== 'active' || admin.tokenVersion !== claims.tv) {
     throw new AppError(401, 'unauthorized', 'Session is no longer valid')
   }
+  const session = await getPrisma().refreshToken.findUnique({ where: { id: claims.sid } })
+  if (
+    !session ||
+    session.adminId !== admin.id ||
+    session.revokedAt ||
+    session.expiresAt.getTime() < Date.now()
+  ) {
+    throw new AppError(401, 'unauthorized', 'Session is no longer valid')
+  }
   return { id: admin.id, email: admin.email, role: admin.role }
 }
 

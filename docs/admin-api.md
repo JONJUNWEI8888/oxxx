@@ -30,7 +30,7 @@ fetch(`${API}/api/v1/auth/me`, { credentials: 'include' })
 
 ### CSRF
 
-`csrfToken` 是 `HMAC-SHA256(服务器密钥, 会话 id)`，会话 id 是刷新令牌在数据库里的 id。带上述任一 Cookie 的 `POST` / `PATCH` / `PUT` / `DELETE` 必须带：
+`csrfToken` 是 `HMAC-SHA256(CSRF_SECRET, 会话 id)`。`CSRF_SECRET` 是单独的环境变量，不是 `JWT_SECRET`。会话 id 是刷新令牌在数据库里的 id。带上述任一 Cookie 的 `POST` / `PATCH` / `PUT` / `DELETE` 必须带：
 
 ```http
 Content-Type: application/json
@@ -192,7 +192,7 @@ Cookie 会话发送 `{}`，`Content-Type: application/json`，并带 CSRF。成�
 {}
 ```
 
-作废刷新令牌并清除三枚 Cookie（`Max-Age=0`）。响应 `{ "ok": true }`。已经登出再调也是 `200`。已经发出的访问 JWT 在过期前仍然有效；浏览器丢掉 Cookie 后就带不上了。改角色和禁用会立刻作废访问令牌。
+作废这一次会话（刷新令牌行标成已撤销）并清除三枚 Cookie（`Max-Age=0`）。响应 `{ "ok": true }`。已经登出再调也是 `200`。登出之后，之前拿到的访问令牌立刻失效：再调受保护接口会得到 `401 unauthorized`。改角色和禁用也会撤销该管理员的全部会话。
 
 ### `GET /api/v1/auth/me`
 
@@ -548,6 +548,7 @@ txHash,logIndex,fromAddress,amount,amountRaw,blockNumber,blockTime,confirmations
 
 | 变量 | 作用 |
 | --- | --- |
+| `CSRF_SECRET` | CSRF 的 HMAC 密钥，至少 32 字符。生产必填，不要复用 `JWT_SECRET` |
 | `ADMIN_CONSOLE_ORIGIN` | 控制台源，唯一允许的 CORS 来源。决定 Cookie 的 `SameSite` |
 | `ADMIN_CORS_ORIGINS` | 仅在上面为空时使用 |
 | `ADMIN_IP_ALLOWLIST` | 除 `/health` 外的客户端 IP/CIDR。生产必填，除非下面的开关为 `true` |
@@ -557,4 +558,4 @@ txHash,logIndex,fromAddress,amount,amountRaw,blockNumber,blockTime,confirmations
 | `ACCESS_TOKEN_TTL_SEC` | 访问 Cookie 秒数，默认 900 |
 | `REFRESH_TOKEN_TTL_DAYS` | 刷新 Cookie 和 CSRF Cookie 天数，默认 7 |
 
-生产环境请同时设置 `ADMIN_CONSOLE_ORIGIN`、`https://` 的 `PUBLIC_BASE_URL`，以及 `ADMIN_IP_ALLOWLIST`。审计表只允许插入，数据库触发器会拒绝 `UPDATE` 和 `DELETE`。
+生产环境请同时设置 `CSRF_SECRET`、`ADMIN_CONSOLE_ORIGIN`、`https://` 的 `PUBLIC_BASE_URL`，以及 `ADMIN_IP_ALLOWLIST`。审计表只允许插入。触发器会拒绝 `UPDATE`、`DELETE` 和 `TRUNCATE`。应用数据库角色对这张表只有 `INSERT` 和 `SELECT`，不能关掉触发器。

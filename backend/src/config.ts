@@ -8,6 +8,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32),
+  /** HMAC key for CSRF tokens. Required in production. Not the JWT secret. */
+  CSRF_SECRET: z.string().default(''),
   PII_ENCRYPTION_KEY: z.string().min(1),
   /** Legacy comma-separated origins. Ignored when ADMIN_CONSOLE_ORIGIN is set. */
   ADMIN_CORS_ORIGINS: z.string().default('http://localhost:3000'),
@@ -60,6 +62,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     const message = error instanceof Error ? error.message : 'ADMIN_IP_ALLOWLIST is invalid'
     throw new Error(message)
   }
+  const csrfSecret = resolveCsrfSecret(parsed.NODE_ENV, parsed.CSRF_SECRET)
   const ipAllowlistDisabled = parsed.ADMIN_IP_ALLOWLIST_DISABLED === 'true'
   if (parsed.NODE_ENV === 'production') {
     if (ipAllowlistDisabled && ipAllowlist.length > 0) {
@@ -74,6 +77,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const legacyOrigins = parsed.ADMIN_CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
   return {
     ...parsed,
+    CSRF_SECRET: csrfSecret,
     consoleOrigin,
     corsOrigins: consoleOrigin ? [consoleOrigin] : legacyOrigins,
     ipAllowlist,
@@ -97,6 +101,16 @@ export function startupWarnings(config: AppConfig): string[] {
   const cookieWarning = cookieSecurityWarning(config)
   if (cookieWarning) warnings.push(cookieWarning)
   return warnings
+}
+
+function resolveCsrfSecret(nodeEnv: string, value: string): string {
+  if (value && value.length < 32) {
+    throw new Error('CSRF_SECRET must be at least 32 characters')
+  }
+  if (nodeEnv === 'production' && value.length < 32) {
+    throw new Error('CSRF_SECRET is required in production and must be at least 32 characters')
+  }
+  return value || 'development-only-csrf-secret-change-me'
 }
 
 function parseConsoleOrigin(value: string): string | null {

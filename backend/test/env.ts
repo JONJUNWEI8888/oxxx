@@ -1,6 +1,7 @@
 process.env.NODE_ENV = 'test'
 process.env.DATABASE_URL ??= 'postgresql://oxxx:oxxx@localhost:5432/oxxx_test'
 process.env.JWT_SECRET ??= 'test-jwt-secret-should-be-32-characters-long'
+process.env.CSRF_SECRET ??= 'test-csrf-secret-should-be-32-characters'
 process.env.PII_ENCRYPTION_KEY ??= Buffer.from('0123456789abcdef0123456789abcdef').toString('base64')
 process.env.ADMIN_CORS_ORIGINS ??= 'http://localhost:3000'
 process.env.STORAGE_DRIVER ??= 'local'
