@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: var(--font-space-mono), 'Space Mono', var(--font-noto-sc), 'PingFang SC', 'Microsoft YaHei', ui-monospace, monospace;
+  --font-mono: var(--font-space-mono), 'Space Mono', var(--font-noto-sc), ui-monospace, monospace;
+  --font-display: var(--font-anton-sc), 'Anton SC', var(--font-noto-sc), 'PingFang SC', sans-serif;
+  --color-background: #000000;
+  --color-foreground: #ffffff;
+  --color-gold: #ee9ac4;
+  --color-gold-light: #ffd9ec;
+  --color-panel: #0d0b0c;
+  --color-line: #231d21;
+  --color-raised: #211c20;
+  --color-up: #2ebd85;
+  --color-down: #f6465d;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; color: #fff; min-height: 100%; }
+  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; }
+}
+
+.logo-wordmark {
+  background-image: linear-gradient(100deg, #fff 0%, #ffd9ec 22%, #ee9ac4 45%, #fff 60%, #ee9ac4 80%, #ffd9ec 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.logo-glow { filter: drop-shadow(0 0 10px color-mix(in oklab, #ee9ac4 55%, transparent)); }
+
+.admin-backdrop {
+  background:
+    radial-gradient(ellipse 70% 40% at 10% -10%, color-mix(in oklab, #ee9ac4 18%, transparent), transparent 55%),
+    #000;
+}
