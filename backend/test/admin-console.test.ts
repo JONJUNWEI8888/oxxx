@@ -385,15 +385,15 @@ describe('admin console API', () => {
     const summary = await app.inject({ method: 'GET', url: '/api/v1/presale/summary', headers: auth(support) })
     expect(summary.json()).toMatchObject({
       confirmationThreshold: 15,
-      confirmed: { totalUsdt: 2.5, txCount: 1, subscriberCount: 1 },
-      pending: { totalUsdt: 6, txCount: 2, subscriberCount: 2 },
+      confirmed: { totalUsdt: '2.5', txCount: 1, subscriberCount: 1 },
+      pending: { totalUsdt: '6', txCount: 2, subscriberCount: 2 },
     })
 
     const subscribers = await app.inject({ method: 'GET', url: '/api/v1/presale/subscribers', headers: auth(support) })
     expect(subscribers.json().total).toBe(1)
     expect(subscribers.json().items[0]).toMatchObject({
       address: confirmed,
-      totalUsdt: 2.5,
+      totalUsdt: '2.5',
       txCount: 1,
       pendingTxCount: 1,
       pendingOnly: false,
@@ -406,7 +406,7 @@ describe('admin console API', () => {
     expect(withPending.json().total).toBe(2)
     expect(withPending.json().items.find((item: { address: string }) => item.address === pendingOnly)).toMatchObject({
       pendingOnly: true,
-      totalUsdt: 0,
+      totalUsdt: '0',
       txCount: 0,
     })
 

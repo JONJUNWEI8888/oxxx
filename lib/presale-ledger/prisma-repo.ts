@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from '@prisma/client'
+import { decimalToIntegerString } from './amounts'
 import { INDEXER_STATE_ID } from './constants'
 import type {
   AddressPage,
@@ -268,10 +269,7 @@ function dedupeCheckpoints(checkpoints: Checkpoint[]): Checkpoint[] {
 }
 
 function asBigint(value: unknown): bigint {
-  if (typeof value === 'bigint') return value
-  if (value === null || value === undefined) return 0n
-  const whole = value.toString().split('.')[0] || '0'
-  return BigInt(whole)
+  return BigInt(decimalToIntegerString(value))
 }
 
 function isUnique(error: unknown): boolean {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PRESALE } from '../presale'
 import { LogAlertChannel, WebhookAlertChannel, createAlertChannel } from './alerts'
 import { clearPresaleCache, withCache } from './cache'
+import { decimalToIntegerString, rawIntegerToUsdtString } from './amounts'
 import { CONFIRMATION_DEPTH, TRANSFER_TOPIC } from './constants'
 import { authorizeCron } from './cron-auth'
 import { safeCronError } from './cron-http'
@@ -23,6 +24,17 @@ import { runPresaleReconciliation } from './reconcile'
 import { HttpRpcClient } from './rpc'
 import { buildPresaleResponse } from './snapshot'
 import type { RpcLog } from './types'
+
+describe('amount strings', () => {
+  it('keeps base-unit integers and fractional USDT out of scientific notation', () => {
+    const integerRaw = `1${'0'.repeat(21)}`
+    expect(decimalToIntegerString({ toFixed: () => integerRaw })).toBe(integerRaw)
+    expect(decimalToIntegerString('1e+21')).toBe(integerRaw)
+    expect(rawIntegerToUsdtString(integerRaw)).toBe('1000')
+    const fractionalRaw = '1234567890123456789012345678901234567890123'
+    expect(rawIntegerToUsdtString(fractionalRaw)).toBe('1234567890123456789012345.678901234567890123')
+  })
+})
 
 const ALICE = '0x1111111111111111111111111111111111111111'
 const BOB = '0x2222222222222222222222222222222222222222'

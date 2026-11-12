@@ -387,14 +387,14 @@ Cookie 会话发送 `{}`，`Content-Type: application/json`，并带 CSRF。成�
 {
   "confirmationThreshold": 15,
   "confirmed": {
-    "totalUsdt": 2.5,
+    "totalUsdt": "2.5",
     "totalRaw": "2500000000000000000",
     "txCount": 1,
     "subscriberCount": 1,
     "latestTransferAt": "2026-11-02T00:00:00.000Z"
   },
   "pending": {
-    "totalUsdt": 6,
+    "totalUsdt": "6",
     "totalRaw": "6000000000000000000",
     "txCount": 2,
     "subscriberCount": 2
@@ -402,7 +402,7 @@ Cookie 会话发送 `{}`，`Content-Type: application/json`，并带 CSRF。成�
 }
 ```
 
-`totalUsdt` 是展示用小数。`totalRaw` 是 18 位精度的整数，做合计时用它。`pending` 不计入 `confirmed`。
+`totalUsdt` 和后面的 `amount` 是精确的十进制字符串，不是 JavaScript 数字。`totalRaw` / `amountRaw` 是链上最小单位的整数字符串（BSC USDT 为 18 位小数）。合计和导出都用这些字符串，不会改成科学计数法。`pending` 不计入 `confirmed`。
 
 ### `GET /api/v1/presale/subscribers`
 
@@ -415,13 +415,13 @@ Cookie 会话发送 `{}`，`Content-Type: application/json`，并带 CSRF。成�
 ```json
 {
   "address": "0xabab…",
-  "totalUsdt": 2.5,
+  "totalUsdt": "2.5",
   "totalRaw": "2500000000000000000",
   "txCount": 1,
   "firstTransferAt": "2026-11-02T00:00:00.000Z",
   "lastTransferAt": "2026-11-02T00:00:00.000Z",
   "pendingTxCount": 1,
-  "pendingUsdt": 1,
+  "pendingUsdt": "1",
   "pendingRaw": "1000000000000000000",
   "pendingOnly": false
 }
@@ -439,7 +439,7 @@ Cookie 会话发送 `{}`，`Content-Type: application/json`，并带 CSRF。成�
   "logIndex": 1,
   "fromAddress": "0x…",
   "toAddress": "0x…",
-  "amount": 2.5,
+  "amount": "2.5",
   "amountRaw": "2500000000000000000",
   "blockNumber": 101,
   "blockHash": "0x…",

@@ -3,7 +3,7 @@
   "info": {
     "title": "OXXX Admin API",
     "version": "1.0.0",
-    "description": "Admin API for the separate admin console. Authorization is enforced on the server. GET /api/v1/auth/me returns permissions only so the UI can hide controls. Browser sessions use __Host- HttpOnly Secure cookies (Path=/, no Domain) and do not receive access or refresh tokens in JSON. Cookie-authenticated mutations require X-CSRF-Token, which is HMAC(server secret, session id), and Content-Type application/json. CORS allows only ADMIN_CONSOLE_ORIGIN when that variable is set. Production refuses to start unless ADMIN_IP_ALLOWLIST is set or ADMIN_IP_ALLOWLIST_DISABLED=true. The allowlist is default-deny except /health and uses request.ip after TRUST_PROXY_HOPS. Responses under /api and /docs send X-Robots-Tag: noindex."
+    "description": "Admin API for the separate admin console. Authorization is enforced on the server. GET /api/v1/auth/me returns permissions only so the UI can hide controls. Browser sessions use __Host- HttpOnly Secure cookies (Path=/, no Domain) and do not receive access or refresh tokens in JSON. Cookie-authenticated mutations require X-CSRF-Token, which is HMAC(server secret, session id), and Content-Type application/json. CORS allows only ADMIN_CONSOLE_ORIGIN when that variable is set. Production refuses to start unless ADMIN_IP_ALLOWLIST is set or ADMIN_IP_ALLOWLIST_DISABLED=true. The allowlist is default-deny except /health and uses request.ip after TRUST_PROXY_HOPS. Responses under /api and /docs send X-Robots-Tag: noindex. Presale amount, totalUsdt, and pendingUsdt are exact decimal strings; amountRaw, totalRaw, and pendingRaw are integer base-unit strings."
   },
   "components": {
     "securitySchemes": {

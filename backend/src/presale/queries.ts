@@ -1,18 +1,18 @@
 import { Prisma, type PrismaClient } from '@prisma/client'
-import { rawToUsdtNumber } from '../../../lib/presale-ledger/amounts'
+import { decimalToIntegerString, rawIntegerToUsdtString } from '../../../lib/presale-ledger/amounts'
 import { CONFIRMATION_DEPTH } from '../../../lib/presale-ledger/constants'
 
 export const PRESALE_EXPORT_LIMIT = 100_000
 
 export type SubscriberRow = {
   address: string
-  totalUsdt: number
+  totalUsdt: string
   totalRaw: string
   txCount: number
   firstTransferAt: string | null
   lastTransferAt: string | null
   pendingTxCount: number
-  pendingUsdt: number
+  pendingUsdt: string
   pendingRaw: string
   pendingOnly: boolean
 }
@@ -69,14 +69,14 @@ export async function presaleSummary(prisma: PrismaClient) {
   return {
     confirmationThreshold: depth,
     confirmed: {
-      totalUsdt: rawToUsdtNumber(BigInt(confirmedRaw)),
+      totalUsdt: rawIntegerToUsdtString(confirmedRaw),
       totalRaw: confirmedRaw,
       txCount: Number(row?.tx_count ?? 0),
       subscriberCount: Number(row?.subscribers ?? 0),
       latestTransferAt: row?.latest ? new Date(row.latest).toISOString() : null,
     },
     pending: {
-      totalUsdt: rawToUsdtNumber(BigInt(pendingRaw)),
+      totalUsdt: rawIntegerToUsdtString(pendingRaw),
       totalRaw: pendingRaw,
       txCount: Number(row?.pending_tx_count ?? 0),
       subscriberCount: Number(row?.pending_subscribers ?? 0),
@@ -121,8 +121,7 @@ function subscriberSql(
 }
 
 function wholeRaw(value: string | null | undefined): string {
-  const whole = (value ?? '0').trim().split('.')[0] || '0'
-  return /^-?\d+$/.test(whole) ? whole : '0'
+  return decimalToIntegerString(value ?? '0')
 }
 
 function presentSubscriber(row: RawSubscriber): SubscriberRow {
@@ -132,13 +131,13 @@ function presentSubscriber(row: RawSubscriber): SubscriberRow {
   const pendingRaw = wholeRaw(row.pending_raw)
   return {
     address: row.address,
-    totalUsdt: rawToUsdtNumber(BigInt(totalRaw)),
+    totalUsdt: rawIntegerToUsdtString(totalRaw),
     totalRaw,
     txCount,
     firstTransferAt: row.first_time ? new Date(row.first_time).toISOString() : null,
     lastTransferAt: row.last_time ? new Date(row.last_time).toISOString() : null,
     pendingTxCount,
-    pendingUsdt: rawToUsdtNumber(BigInt(pendingRaw)),
+    pendingUsdt: rawIntegerToUsdtString(pendingRaw),
     pendingRaw,
     pendingOnly: txCount === 0 && pendingTxCount > 0,
   }

@@ -2,7 +2,7 @@ import { Readable } from 'node:stream'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
-import { rawToUsdtNumber } from '../../../lib/presale-ledger/amounts'
+import { decimalToIntegerString, rawIntegerToUsdtString } from '../../../lib/presale-ledger/amounts'
 import { CONFIRMATION_DEPTH } from '../../../lib/presale-ledger/constants'
 import { normalizeAddress } from '../../../lib/presale-ledger/hex'
 import { writeAudit } from '../audit'
@@ -203,19 +203,19 @@ function present(row: {
   logIndex: number
   fromAddress: string
   toAddress: string
-  amountRaw: { toString(): string }
+  amountRaw: { toFixed(digits: number): string }
   blockNumber: number
   blockHash: string
   blockTime: Date
   confirmations: number
 }) {
-  const amountRaw = row.amountRaw.toString().split('.')[0] || '0'
+  const amountRaw = decimalToIntegerString(row.amountRaw)
   return {
     txHash: row.txHash,
     logIndex: row.logIndex,
     fromAddress: row.fromAddress,
     toAddress: row.toAddress,
-    amount: rawToUsdtNumber(BigInt(amountRaw)),
+    amount: rawIntegerToUsdtString(amountRaw),
     amountRaw,
     blockNumber: row.blockNumber,
     blockHash: row.blockHash,
