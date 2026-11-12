@@ -52,13 +52,27 @@ pnpm --filter @oxxx/admin dev
 DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 ```
 
+## 生产数据库角色
+
+迁移用表的所有者连接（`DATABASE_MIGRATION_URL`）。跑着的 API 用另一个角色 `oxxx_app`（`DATABASE_URL`）。`oxxx_app` 不是所有者，所以不能 `DROP` 或 `DISABLE` 触发器。其它业务表可以增删改查。`audit_logs` 只有 `INSERT` 和 `SELECT`。`UPDATE`、`DELETE`、`TRUNCATE` 会被触发器拒绝。
+
+生产环境必须设置 `APP_DB_PASSWORD`。没有它时进程拒绝启动，不会退回用表的所有者跑 API。开发和测试可以不设，这时仍用迁移用的那个角色。容器启动时，入口脚本先用所有者跑 `prisma migrate deploy` 和 `backend/src/scripts/ensure-app-role.ts`，种子数据也用所有者写入，然后再切回 `DATABASE_URL` 启动进程。不用镜像入口时，在迁移之后用所有者执行：
+
+```bash
+# 把 prisma/production-app-role.sql 里的 CHANGE_ME 换成应用密码。
+# 角色已经存在时，改用文件里注释着的 ALTER ROLE。
+psql "$DATABASE_MIGRATION_URL" -f prisma/production-app-role.sql
+```
+
+测试清库的账号是表的所有者。它会先 `DISABLE TRIGGER audit_logs_no_truncate`，再 `TRUNCATE`，最后把触发器打开。触发器开着的时候，`TRUNCATE audit_logs` 会失败。
+
 ## 认证和权限
 
 密码使用 Argon2id。登录成功后不会直接发访问令牌：
 
 1. `POST /api/v1/auth/login` 校验密码。未完成邀请注册的账号返回 `enrollment_required`，不会发绑定令牌。
 2. `POST /api/v1/auth/mfa` 提交 6 位动态码。失败次数记在账号上，重新登录不会清零；连续 5 次锁定 15 分钟。用过的时间步会记下来，同一动态码不能再用。
-3. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 作废刷新令牌。
+3. `POST /api/v1/auth/refresh` 轮换刷新令牌。`POST /api/v1/auth/logout` 撤销这次会话，已经发出的访问令牌马上不能再用。
 4. `POST /api/v1/auth/invites` 由超级管理员创建一次性邀请。`POST /api/v1/auth/invites/start` 展示 TOTP，`POST /api/v1/auth/invites/redeem` 设置密码并完成绑定。
 
 密码失败按 **IP + 账号** 计数，并随次数变慢。只知道邮箱不能把管理员从别的 IP 锁死。同一 IP 的总失败次数另有上限。失败次数用数据库里的原子自增，锁定与否看自增后的返回值。TOTP 时间步用带条件的 `updateMany` 抢占，同一动态码并发提交只有一次成功。客户端 IP 只取 Fastify 按 `TRUST_PROXY_HOPS` 算出的 `request.ip`，不直接读 `X-Forwarded-For`。
@@ -79,7 +93,7 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 
 ## 主要接口
 
-除健康检查、登录、MFA 和带签名的对象存储地址外，请求都要带 `Authorization: Bearer <accessToken>`。
+除健康检查、登录、MFA、邀请打开/绑定和带签名的对象存储地址外，请求要带 `Authorization: Bearer <accessToken>`，或带登录时写下的 HttpOnly Cookie。Cookie 的变更请求还要带 `X-CSRF-Token`。细节见 [docs/admin-api.md](../docs/admin-api.md)。
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -90,8 +104,13 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 | POST | `/api/v1/auth/invites/redeem` | 设置密码并完成绑定 |
 | POST | `/api/v1/auth/refresh` | 刷新 |
 | POST | `/api/v1/auth/logout` | 登出 |
-| GET | `/api/v1/auth/me` | 当前管理员 |
-| GET | `/api/v1/users` | `q`（邮箱、手机或用户 id）、`status`、分页 |
+| GET | `/api/v1/auth/me` | 当前管理员、角色和权限 |
+| GET | `/api/v1/auth/csrf` | 用 Cookie 换回 CSRF 明文 |
+| GET | `/api/v1/admin/admins` | 超级管理员列出管理员 |
+| POST | `/api/v1/admin/invites` | 同上，创建邀请 |
+| PATCH | `/api/v1/admin/admins/:id` | 修改角色，旧会话失效 |
+| POST | `/api/v1/admin/admins/:id/disable` | 禁用管理员 |
+| GET | `/api/v1/users` | `status`、`kycStatus`、创建时间、邮箱或手机精确搜索、分页 |
 | POST | `/api/v1/users` | 运营代建用户。交易站注册是 v2 |
 | GET | `/api/v1/users/:id` | 详情，含最近一条 KYC 状态 |
 | POST | `/api/v1/users/:id/freeze` | 仅 `active` → `frozen` |
@@ -99,18 +118,23 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 | POST | `/api/v1/users/:id/ban` | `active` 或 `frozen` → `banned` |
 | GET | `/api/v1/kyc` | `status`、`level`、分页 |
 | POST | `/api/v1/kyc` | 代建申请 |
-| GET | `/api/v1/kyc/:id` | 解密后的个人资料，不含公开文件地址 |
+| GET | `/api/v1/kyc/:id` | 个人资料、短时证件 URL、审核记录 |
+| GET | `/api/v1/kyc/history` | 已审核记录。默认不含 `pending` |
 | POST | `/api/v1/kyc/:id/approve` | 仅 `pending` |
 | POST | `/api/v1/kyc/:id/reject` | body `{ "reason": "..." }`，必填 |
 | POST | `/api/v1/kyc/:id/documents` | 返回短时上传地址 |
 | GET | `/api/v1/kyc/:id/documents/:docId/url` | 返回短时下载地址 |
-| GET | `/api/v1/audit` | `actorId`、`action`、`targetType`、时间范围、分页 |
-| GET | `/api/v1/presale/subscriptions` | `address`、`txHash`、分页 |
-| GET | `/api/v1/presale/subscriptions.csv` | 同一过滤条件，最多 10 万行 |
+| GET | `/api/v1/audit` | `actorId`、`action`、`targetType`、`targetId`、时间范围、分页 |
+| GET | `/api/v1/presale/summary` | 已确认与未满 15 确认的合计 |
+| GET | `/api/v1/presale/subscribers` | 按地址汇总。默认不含只有未确认转账的地址 |
+| GET | `/api/v1/presale/subscribers/:address/transfers` | 该地址的转账 |
+| GET | `/api/v1/presale/subscribers.csv` | 流式 CSV，最多 10 万行 |
+| GET | `/api/v1/presale/subscriptions` | `address`、`txHash`、分页。默认不含未满 15 确认 |
+| GET | `/api/v1/presale/subscriptions.csv` | 流式 CSV，同一过滤条件，最多 10 万行 |
 | POST | `/api/v1/internal/presale/index` | `Authorization: Bearer $CRON_SECRET` |
 | POST | `/api/v1/internal/presale/reconcile` | 同上 |
 
-错误体为 `{ "error": { "code", "message" } }`。CORS 只反射 `ADMIN_CORS_ORIGINS` 里的来源。
+错误体为 `{ "error": { "code", "message" } }`。浏览器会话、CSRF、权限字段和给前端的字段说明见 [docs/admin-api.md](../docs/admin-api.md)。CORS 在设置了 `ADMIN_CONSOLE_ORIGIN` 时只反射这一个来源；否则才使用 `ADMIN_CORS_ORIGINS`。生产环境如果 `ADMIN_IP_ALLOWLIST` 为空且没有把 `ADMIN_IP_ALLOWLIST_DISABLED` 设成精确的 `true`，进程拒绝启动。Cookie 名称固定为 `__Host-`，响应 JSON 不返回访问令牌或刷新令牌。
 
 KYC 证件默认存在本机 `var/storage`，通过 HMAC 签名地址读写，没有公开列表。生产把 `STORAGE_DRIVER=s3`，并设置 `S3_ENDPOINT`、`S3_BUCKET`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`。接口只返回预签名 URL，桶本身不公开。
 
@@ -138,7 +162,7 @@ KYC 证件默认存在本机 `var/storage`，通过 HMAC 签名地址读写，�
 ## v2 还没做
 
 - 把现有登录 / 注册 / 交易页接到用户体系，用户自行提交 KYC
-- 加密字段的模糊搜索、管理员禁用和 TOTP 恢复码
+- 加密字段的模糊搜索，以及 TOTP 恢复码
 - 把登录失败的 Postgres 计数也换成与 Upstash 同一套策略的多副本视图（现在密码失败次数已在 Postgres 里原子自增，分布式闸门在 Redis）
 - 收款地址转出的账务处理，避免归集资金时对账告警
 - 管理界面本身

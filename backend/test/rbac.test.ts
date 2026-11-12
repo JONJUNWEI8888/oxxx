@@ -112,6 +112,7 @@ describe('rbac', () => {
       method: 'POST',
       url: `/api/v1/kyc/${kyc.json().id}/approve`,
       headers: auth(supportToken),
+      payload: {},
     })
     expect(supportReview.statusCode).toBe(403)
   })

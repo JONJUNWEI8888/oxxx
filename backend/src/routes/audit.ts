@@ -10,6 +10,7 @@ const querySchema = z.object({
   actorId: z.string().uuid().optional(),
   action: z.string().max(80).optional(),
   targetType: z.string().max(40).optional(),
+  targetId: z.string().uuid().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -29,6 +30,7 @@ export async function auditRoutes(app: FastifyInstance, config: AppConfig) {
         ...(query.actorId ? { actorId: query.actorId } : {}),
         ...(query.action ? { action: query.action } : {}),
         ...(query.targetType ? { targetType: query.targetType } : {}),
+        ...(query.targetId ? { targetId: query.targetId } : {}),
         ...(query.from || query.to
           ? {
               createdAt: {

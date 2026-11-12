@@ -31,7 +31,17 @@ const listQuery = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 })
 
+const historyQuery = z.object({
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  userId: z.string().uuid().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+})
+
 const idParams = z.object({ id: z.string().uuid() })
+const DOWNLOAD_TTL_SEC = 120
 const docParams = z.object({ id: z.string().uuid(), docId: z.string().uuid() })
 const rejectBody = z.object({ reason: z.string().trim().min(2).max(500) })
 const uploadBody = z.object({
@@ -91,6 +101,49 @@ export async function kycRoutes(app: FastifyInstance, config: AppConfig, storage
   )
 
   app.get(
+    '/api/v1/kyc/history',
+    {
+      preHandler: requirePermission(config, 'kyc.read'),
+      schema: { tags: ['kyc'], security: [{ bearerAuth: [] }], querystring: historyQuery },
+    },
+    async (request) => {
+      const query = historyQuery.parse(request.query)
+      const where = {
+        status: query.status ?? { in: ['approved' as const, 'rejected' as const] },
+        ...(query.userId ? { userId: query.userId } : {}),
+        ...(query.from || query.to
+          ? {
+              reviewedAt: {
+                ...(query.from ? { gte: new Date(query.from) } : {}),
+                ...(query.to ? { lte: new Date(query.to) } : {}),
+              },
+            }
+          : {}),
+      }
+      const [total, rows] = await prisma.$transaction([
+        prisma.kycApplication.count({ where }),
+        prisma.kycApplication.findMany({
+          where,
+          orderBy: [{ reviewedAt: 'desc' }, { submittedAt: 'desc' }],
+          skip: (query.page - 1) * query.pageSize,
+          take: query.pageSize,
+          include: { reviewer: { select: { id: true, email: true, role: true } } },
+        }),
+      ])
+      await writeAudit(prisma, meta(request, 'kyc.history', null, { page: query.page, total, status: query.status ?? 'reviewed' }))
+      return {
+        items: rows.map((row) => ({
+          ...summarize(row),
+          reviewer: row.reviewer ? { id: row.reviewer.id, email: row.reviewer.email, role: row.reviewer.role } : null,
+        })),
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+      }
+    },
+  )
+
+  app.get(
     '/api/v1/kyc/:id',
     {
       preHandler: requirePermission(config, 'kyc.read'),
@@ -103,16 +156,36 @@ export async function kycRoutes(app: FastifyInstance, config: AppConfig, storage
         include: { documents: true, reviewer: true },
       })
       if (!application) throw new AppError(404, 'not_found', 'KYC application not found')
-      await writeAudit(prisma, meta(request, 'kyc.read', id))
+      const events = await prisma.auditLog.findMany({
+        where: { targetType: 'kyc', targetId: id },
+        orderBy: { createdAt: 'asc' },
+        take: 100,
+        include: { actor: { select: { id: true, email: true, role: true } } },
+      })
+      const documents = await Promise.all(
+        application.documents.map(async (doc) => {
+          const download = await storage.signedDownload({ key: doc.storageKey, expiresInSec: DOWNLOAD_TTL_SEC })
+          return {
+            id: doc.id,
+            fileName: doc.fileName,
+            contentType: doc.contentType,
+            createdAt: doc.createdAt.toISOString(),
+            download: { url: download.url, method: download.method, expiresInSec: DOWNLOAD_TTL_SEC },
+          }
+        }),
+      )
+      await writeAudit(prisma, meta(request, 'kyc.read', id, { documents: documents.length }))
       return {
         ...summarize(application),
         personal: JSON.parse(decryptString(application.personalCipher, config.piiKey)),
         reviewer: application.reviewer ? { id: application.reviewer.id, email: application.reviewer.email } : null,
-        documents: application.documents.map((doc) => ({
-          id: doc.id,
-          fileName: doc.fileName,
-          contentType: doc.contentType,
-          createdAt: doc.createdAt.toISOString(),
+        documents,
+        history: events.map((event) => ({
+          id: event.id,
+          action: event.action,
+          metadata: event.metadata,
+          createdAt: event.createdAt.toISOString(),
+          actor: event.actor ? { id: event.actor.id, email: event.actor.email, role: event.actor.role } : null,
         })),
       }
     },
@@ -200,7 +273,7 @@ export async function kycRoutes(app: FastifyInstance, config: AppConfig, storage
       const { id, docId } = docParams.parse(request.params)
       const document = await prisma.kycDocument.findFirst({ where: { id: docId, applicationId: id } })
       if (!document) throw new AppError(404, 'not_found', 'Document not found')
-      const download = await storage.signedDownload({ key: document.storageKey, expiresInSec: 120 })
+      const download = await storage.signedDownload({ key: document.storageKey, expiresInSec: DOWNLOAD_TTL_SEC })
       await writeAudit(prisma, meta(request, 'kyc.document.download_url', docId))
       return { documentId: docId, download }
     },

@@ -1,13 +1,26 @@
 import { z } from 'zod'
+import { cookieSecurityWarning } from './http/cookies'
+import { parseAllowlist, type CidrRange } from './net/ip-allowlist'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1),
+  /** Password for the oxxx_app role. Required in production so the API is not the table owner. */
+  APP_DB_PASSWORD: z.string().default(''),
   JWT_SECRET: z.string().min(32),
+  /** HMAC key for CSRF tokens. Required in production. Not the JWT secret. */
+  CSRF_SECRET: z.string().default(''),
   PII_ENCRYPTION_KEY: z.string().min(1),
+  /** Legacy comma-separated origins. Ignored when ADMIN_CONSOLE_ORIGIN is set. */
   ADMIN_CORS_ORIGINS: z.string().default('http://localhost:3000'),
+  /** Single admin-console origin, for example https://admin.oxxx.io. No path. */
+  ADMIN_CONSOLE_ORIGIN: z.string().default(''),
+  /** Comma-separated IPs and CIDRs. Required in production unless the opt-out below is exactly "true". */
+  ADMIN_IP_ALLOWLIST: z.string().default(''),
+  /** Set to the exact string "true" to allow every client IP. Production logs this loudly. */
+  ADMIN_IP_ALLOWLIST_DISABLED: z.string().default(''),
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   LOCAL_STORAGE_DIR: z.string().default('./var/storage'),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:4000'),
@@ -28,7 +41,13 @@ const envSchema = z.object({
 })
 
 export type AppConfig = z.infer<typeof envSchema> & {
+  /** Origins the browser may call with credentials. One entry when ADMIN_CONSOLE_ORIGIN is set. */
   corsOrigins: string[]
+  /** The admin console origin. Null when the legacy CORS list is in use. */
+  consoleOrigin: string | null
+  ipAllowlist: CidrRange[]
+  /** True only when ADMIN_IP_ALLOWLIST_DISABLED is exactly "true". */
+  ipAllowlistDisabled: boolean
   piiKey: Buffer
 }
 
@@ -37,11 +56,83 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (parsed.STORAGE_DRIVER === 's3' && (!parsed.S3_BUCKET || !parsed.S3_ACCESS_KEY_ID || !parsed.S3_SECRET_ACCESS_KEY)) {
     throw new Error('S3 storage requires S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY')
   }
+  const consoleOrigin = parseConsoleOrigin(parsed.ADMIN_CONSOLE_ORIGIN)
+  let ipAllowlist: CidrRange[] = []
+  try {
+    ipAllowlist = parseAllowlist(parsed.ADMIN_IP_ALLOWLIST)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'ADMIN_IP_ALLOWLIST is invalid'
+    throw new Error(message)
+  }
+  const csrfSecret = resolveCsrfSecret(parsed.NODE_ENV, parsed.CSRF_SECRET)
+  const ipAllowlistDisabled = parsed.ADMIN_IP_ALLOWLIST_DISABLED === 'true'
+  if (parsed.NODE_ENV === 'production') {
+    if (!parsed.APP_DB_PASSWORD) {
+      throw new Error(
+        'Refusing to start: production requires APP_DB_PASSWORD so the API runs as oxxx_app, not the database owner.',
+      )
+    }
+    if (ipAllowlistDisabled && ipAllowlist.length > 0) {
+      throw new Error('ADMIN_IP_ALLOWLIST_DISABLED=true conflicts with a non-empty ADMIN_IP_ALLOWLIST')
+    }
+    if (!ipAllowlistDisabled && ipAllowlist.length === 0) {
+      throw new Error(
+        'Refusing to start: production requires ADMIN_IP_ALLOWLIST (comma-separated CIDRs). Set ADMIN_IP_ALLOWLIST_DISABLED=true only to explicitly allow every client IP.',
+      )
+    }
+  }
+  const legacyOrigins = parsed.ADMIN_CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
   return {
     ...parsed,
-    corsOrigins: parsed.ADMIN_CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
+    CSRF_SECRET: csrfSecret,
+    consoleOrigin,
+    corsOrigins: consoleOrigin ? [consoleOrigin] : legacyOrigins,
+    ipAllowlist,
+    ipAllowlistDisabled,
     piiKey: decodeKey(parsed.PII_ENCRYPTION_KEY),
   }
+}
+
+export function startupWarnings(config: AppConfig): string[] {
+  const warnings: string[] = []
+  if (config.ipAllowlistDisabled) {
+    warnings.push(
+      'SECURITY: ADMIN_IP_ALLOWLIST_DISABLED=true — every client IP can reach admin and auth routes. Do not use this opt-out in a real deployment.',
+    )
+  }
+  if (config.NODE_ENV === 'production' && !config.consoleOrigin) {
+    warnings.push(
+      'ADMIN_CONSOLE_ORIGIN is unset. CORS is falling back to ADMIN_CORS_ORIGINS. Set ADMIN_CONSOLE_ORIGIN to the admin console origin.',
+    )
+  }
+  const cookieWarning = cookieSecurityWarning(config)
+  if (cookieWarning) warnings.push(cookieWarning)
+  return warnings
+}
+
+function resolveCsrfSecret(nodeEnv: string, value: string): string {
+  if (value && value.length < 32) {
+    throw new Error('CSRF_SECRET must be at least 32 characters')
+  }
+  if (nodeEnv === 'production' && value.length < 32) {
+    throw new Error('CSRF_SECRET is required in production and must be at least 32 characters')
+  }
+  return value || 'development-only-csrf-secret-change-me'
+}
+
+function parseConsoleOrigin(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  let url: URL
+  try {
+    url = new URL(trimmed)
+  } catch {
+    throw new Error('ADMIN_CONSOLE_ORIGIN must be an absolute origin, for example https://admin.oxxx.io')
+  }
+  if (url.username || url.password || url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
+    throw new Error('ADMIN_CONSOLE_ORIGIN must be an origin without a path, query, or credentials')
+  }
+  return url.origin
 }
 
 function decodeKey(value: string): Buffer {
