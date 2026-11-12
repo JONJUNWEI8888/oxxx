@@ -128,7 +128,7 @@ export function PresalePanel() {
   )
 }
 
-function SummaryCard({ title, amount, detail }: { title: string; amount: number; detail: string }) {
+function SummaryCard({ title, amount, detail }: { title: string; amount: string; detail: string }) {
   return <div className="rounded-xl border border-line bg-panel p-4"><p className="text-xs text-white/45">{title}</p><p className="mt-2 font-display text-3xl">{formatUsdt(amount)}</p><p className="mt-1 text-xs text-white/50">{detail}</p></div>
 }
 

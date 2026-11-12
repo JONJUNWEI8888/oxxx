@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 3001",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/ip-allowlist.test.ts lib/api/errors.test.ts lib/api/parse.test.ts"
+    "test": "node --experimental-strip-types --test lib/ip-allowlist.test.ts lib/api/errors.test.ts lib/api/parse.test.ts lib/labels.test.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

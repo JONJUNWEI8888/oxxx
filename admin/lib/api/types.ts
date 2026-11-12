@@ -75,14 +75,14 @@ export type AuditEntry = {
 export type PresaleSummary = {
   confirmationThreshold: number
   confirmed: {
-    totalUsdt: number
+    totalUsdt: string
     totalRaw: string
     txCount: number
     subscriberCount: number
     latestTransferAt: string | null
   }
   pending: {
-    totalUsdt: number
+    totalUsdt: string
     totalRaw: string
     txCount: number
     subscriberCount: number
@@ -91,13 +91,13 @@ export type PresaleSummary = {
 
 export type Subscriber = {
   address: string
-  totalUsdt: number
+  totalUsdt: string
   totalRaw: string
   txCount: number
   firstTransferAt: string | null
   lastTransferAt: string | null
   pendingTxCount: number
-  pendingUsdt: number
+  pendingUsdt: string
   pendingRaw: string
   pendingOnly: boolean
 }
@@ -107,7 +107,7 @@ export type Transfer = {
   logIndex: number
   fromAddress: string
   toAddress: string
-  amount: number
+  amount: string
   amountRaw: string
   blockNumber: number
   blockHash: string

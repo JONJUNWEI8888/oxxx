@@ -45,8 +45,16 @@ export function formatTime(iso: string | null | undefined): string {
   }).format(date)
 }
 
-export function formatUsdt(amount: number): string {
-  return `${new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(amount)} USDT`
+/** Group the integer part. Keep every decimal digit. Never parse the amount as a number. */
+export function formatUsdt(amount: string): string {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(amount.trim())
+  if (!match) return `${amount} USDT`
+  const sign = match[1]
+  const whole = match[2].replace(/^0+(?=\d)/, '')
+  const fraction = match[3] ?? ''
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const decimals = fraction.length >= 2 ? fraction : fraction.padEnd(2, '0')
+  return `${sign}${grouped}.${decimals} USDT`
 }
 
 export function toIso(localValue: string): string | undefined {
