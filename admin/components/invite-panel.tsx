@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import QRCode from 'qrcode'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ApiAlert, StatusNote } from '@/components/api-alert'
 import { Button, Field, TextField } from '@/components/ui/controls'
 import { browserJson } from '@/lib/api/browser'
@@ -14,7 +14,15 @@ import { ROLE_LABEL } from '@/lib/labels'
 
 export function InvitePanel() {
   const params = useSearchParams()
-  const token = params.get('token')?.trim() ?? ''
+  const [token] = useState(() => params.get('token')?.trim() ?? '')
+
+  useEffect(() => {
+    if (!token || !window.location.search.includes('token=')) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('token')
+    const next = `${url.pathname}${url.search}${url.hash}`
+    window.history.replaceState(window.history.state, '', next)
+  }, [token])
   const [started, setStarted] = useState<InviteStart | null>(null)
   const [qr, setQr] = useState('')
   const [password, setPassword] = useState('')

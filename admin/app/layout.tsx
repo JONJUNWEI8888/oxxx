@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Anton_SC, Noto_Sans_SC, Space_Mono } from 'next/font/google'
+import { headers } from 'next/headers'
+import { connection } from 'next/server'
 import './globals.css'
 
 const notoSansSC = Noto_Sans_SC({ weight: ['400', '500'], preload: false, variable: '--font-noto-sc' })
@@ -13,11 +15,15 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#000000' }
-export const dynamic = 'force-dynamic'
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Per-request nonce. Waiting on the request keeps pages dynamic so Next stamps
+  // this nonce onto its inline bootstrap scripts.
+  await connection()
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
-    <html lang="zh-CN" className={`${spaceMono.variable} ${antonSC.variable} ${notoSansSC.variable}`}>
+    <html lang="zh-CN" className={`${spaceMono.variable} ${antonSC.variable} ${notoSansSC.variable}`} nonce={nonce}>
       <body>{children}</body>
     </html>
   )

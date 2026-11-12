@@ -76,5 +76,14 @@ function applySecurityHeaders(headers: Headers, https: boolean) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    {
+      // Skip hashed assets. Skip prefetches so the client keeps the document nonce.
+      source: '/((?!_next/static|_next/image|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
 }
