@@ -56,7 +56,7 @@ DATABASE_URL=postgresql://oxxx:oxxx@localhost:5432/oxxx_test pnpm test
 
 迁移用表的所有者连接（`DATABASE_MIGRATION_URL`）。跑着的 API 用另一个角色 `oxxx_app`（`DATABASE_URL`）。`oxxx_app` 不是所有者，所以不能 `DROP` 或 `DISABLE` 触发器。其它业务表可以增删改查。`audit_logs` 只有 `INSERT` 和 `SELECT`。`UPDATE`、`DELETE`、`TRUNCATE` 会被触发器拒绝。
 
-容器启动时，入口脚本先用所有者跑 `prisma migrate deploy` 和 `backend/src/scripts/ensure-app-role.ts`（需要 `APP_DB_PASSWORD`），种子数据也用所有者写入，然后再切回 `DATABASE_URL` 启动进程。不用镜像入口时，在迁移之后用所有者执行：
+生产环境必须设置 `APP_DB_PASSWORD`。没有它时进程拒绝启动，不会退回用表的所有者跑 API。开发和测试可以不设，这时仍用迁移用的那个角色。容器启动时，入口脚本先用所有者跑 `prisma migrate deploy` 和 `backend/src/scripts/ensure-app-role.ts`，种子数据也用所有者写入，然后再切回 `DATABASE_URL` 启动进程。不用镜像入口时，在迁移之后用所有者执行：
 
 ```bash
 # 把 prisma/production-app-role.sql 里的 CHANGE_ME 换成应用密码。

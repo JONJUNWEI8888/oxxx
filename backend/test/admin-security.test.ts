@@ -76,6 +76,7 @@ describe('admin network and cookie policy', () => {
       PUBLIC_BASE_URL: 'https://api.oxxx.io',
       ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
       ADMIN_IP_ALLOWLIST: '203.0.113.0/24',
+      APP_DB_PASSWORD: 'app-db-password',
     })
     expect(startupWarnings(base)).toEqual([])
 
@@ -87,8 +88,9 @@ describe('admin network and cookie policy', () => {
         ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
         ADMIN_IP_ALLOWLIST: '',
         ADMIN_IP_ALLOWLIST_DISABLED: 'yes',
+        APP_DB_PASSWORD: 'app-db-password',
       }),
-    ).toThrow(/Refusing to start/)
+    ).toThrow(/ADMIN_IP_ALLOWLIST/)
     const disabled = loadConfig({
       ...process.env,
       NODE_ENV: 'production',
@@ -96,6 +98,7 @@ describe('admin network and cookie policy', () => {
       ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
       ADMIN_IP_ALLOWLIST: '',
       ADMIN_IP_ALLOWLIST_DISABLED: 'true',
+      APP_DB_PASSWORD: 'app-db-password',
     })
     expect(startupWarnings(disabled).join('\n')).toMatch(/ADMIN_IP_ALLOWLIST_DISABLED/)
     expect(loadConfig({ ...process.env, ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io' }).corsOrigins).toEqual([
@@ -127,6 +130,17 @@ describe('admin network and cookie policy', () => {
     const dev = loadConfig({ ...process.env, NODE_ENV: 'development', CSRF_SECRET: '' })
     expect(dev.CSRF_SECRET.length).toBeGreaterThanOrEqual(32)
     expect(dev.CSRF_SECRET).not.toBe(dev.JWT_SECRET)
+    expect(() =>
+      loadConfig({
+        ...process.env,
+        NODE_ENV: 'production',
+        PUBLIC_BASE_URL: 'https://api.oxxx.io',
+        ADMIN_CONSOLE_ORIGIN: 'https://admin.oxxx.io',
+        ADMIN_IP_ALLOWLIST: '203.0.113.0/24',
+        APP_DB_PASSWORD: '',
+      }),
+    ).toThrow(/APP_DB_PASSWORD/)
+    expect(loadConfig({ ...process.env, NODE_ENV: 'test', APP_DB_PASSWORD: '' }).NODE_ENV).toBe('test')
   })
 
   it('publishes the console routes in openapi.json', () => {

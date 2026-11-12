@@ -7,6 +7,8 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1),
+  /** Password for the oxxx_app role. Required in production so the API is not the table owner. */
+  APP_DB_PASSWORD: z.string().default(''),
   JWT_SECRET: z.string().min(32),
   /** HMAC key for CSRF tokens. Required in production. Not the JWT secret. */
   CSRF_SECRET: z.string().default(''),
@@ -65,6 +67,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const csrfSecret = resolveCsrfSecret(parsed.NODE_ENV, parsed.CSRF_SECRET)
   const ipAllowlistDisabled = parsed.ADMIN_IP_ALLOWLIST_DISABLED === 'true'
   if (parsed.NODE_ENV === 'production') {
+    if (!parsed.APP_DB_PASSWORD) {
+      throw new Error(
+        'Refusing to start: production requires APP_DB_PASSWORD so the API runs as oxxx_app, not the database owner.',
+      )
+    }
     if (ipAllowlistDisabled && ipAllowlist.length > 0) {
       throw new Error('ADMIN_IP_ALLOWLIST_DISABLED=true conflicts with a non-empty ADMIN_IP_ALLOWLIST')
     }

@@ -2,7 +2,13 @@ import { PrismaClient } from '@prisma/client'
 
 const password = process.env.APP_DB_PASSWORD ?? ''
 if (!password) {
-  console.log('APP_DB_PASSWORD is unset; the API keeps using the migration role')
+  if ((process.env.NODE_ENV ?? 'development') === 'production') {
+    console.error(
+      'Refusing to start: production requires APP_DB_PASSWORD so the API runs as oxxx_app, not the database owner.',
+    )
+    process.exit(1)
+  }
+  console.log('APP_DB_PASSWORD is unset; development keeps using the migration role')
   process.exit(0)
 }
 

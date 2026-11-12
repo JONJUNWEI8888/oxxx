@@ -549,6 +549,8 @@ txHash,logIndex,fromAddress,amount,amountRaw,blockNumber,blockTime,confirmations
 | 变量 | 作用 |
 | --- | --- |
 | `CSRF_SECRET` | CSRF 的 HMAC 密钥，至少 32 字符。生产必填，不要复用 `JWT_SECRET` |
+| `APP_DB_PASSWORD` | `oxxx_app` 的密码。生产必填，否则进程拒绝启动，不会用表的所有者跑 API。开发和测试可以不设 |
+| `DATABASE_MIGRATION_URL` | 表所有者的连接，只用于迁移和创建 `oxxx_app`。应用进程用 `DATABASE_URL` |
 | `ADMIN_CONSOLE_ORIGIN` | 控制台源，唯一允许的 CORS 来源。决定 Cookie 的 `SameSite` |
 | `ADMIN_CORS_ORIGINS` | 仅在上面为空时使用 |
 | `ADMIN_IP_ALLOWLIST` | 除 `/health` 外的客户端 IP/CIDR。生产必填，除非下面的开关为 `true` |
@@ -558,4 +560,4 @@ txHash,logIndex,fromAddress,amount,amountRaw,blockNumber,blockTime,confirmations
 | `ACCESS_TOKEN_TTL_SEC` | 访问 Cookie 秒数，默认 900 |
 | `REFRESH_TOKEN_TTL_DAYS` | 刷新 Cookie 和 CSRF Cookie 天数，默认 7 |
 
-生产环境请同时设置 `CSRF_SECRET`、`ADMIN_CONSOLE_ORIGIN`、`https://` 的 `PUBLIC_BASE_URL`，以及 `ADMIN_IP_ALLOWLIST`。审计表只允许插入。触发器会拒绝 `UPDATE`、`DELETE` 和 `TRUNCATE`。应用数据库角色对这张表只有 `INSERT` 和 `SELECT`，不能关掉触发器。
+生产环境请同时设置 `CSRF_SECRET`、`APP_DB_PASSWORD`、`ADMIN_CONSOLE_ORIGIN`、`https://` 的 `PUBLIC_BASE_URL`，以及 `ADMIN_IP_ALLOWLIST`。缺 `APP_DB_PASSWORD` 时和生产环境缺 `CSRF_SECRET` 或 `ADMIN_IP_ALLOWLIST` 一样，进程直接拒绝启动。审计表只允许插入。触发器会拒绝 `UPDATE`、`DELETE` 和 `TRUNCATE`。应用数据库角色对这张表只有 `INSERT` 和 `SELECT`，不能关掉触发器。CSV 里来自外部的文本（地址等）若以 `=`、`+`、`-`、`@`、制表符或回车开头，会先加一个单引号；我们自己生成的金额数字不会加这个前缀。

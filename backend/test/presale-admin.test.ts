@@ -66,7 +66,7 @@ describe('presale admin', () => {
     expect(missing.statusCode).toBe(401)
   })
 
-  it('returns exact digits for huge base units and fractional USDT in JSON and CSV', async () => {
+  it('returns exactly 1000 USDT for 1e21 base units and keeps fractional USDT digits in JSON and CSV', async () => {
     const app = await appPromise
     await createAdmin('support', 'support@example.com')
     const token = await login(app, 'support@example.com')
@@ -131,6 +131,39 @@ describe('presale admin', () => {
     expect(subscriberCsv.statusCode).toBe(200)
     expect(subscriberCsv.body).toContain(`${fractionAddress},${fractionalUsdt},${fractionalRaw}`)
     expect(subscriberCsv.body).toContain(`${roundAddress},1000,${integerRaw}`)
+    expect(subscriberCsv.body).not.toContain("'1000")
+    expect(subscriptionCsv.body).not.toContain("'1000")
+  })
+
+  it('prefixes CSV formula characters on addresses and leaves generated amounts numeric', async () => {
+    const app = await appPromise
+    await createAdmin('support', 'support@example.com')
+    const token = await login(app, 'support@example.com')
+    const formula = '=1+1'
+    const at = '@SUM(A1)'
+    await prisma.presaleContribution.createMany({
+      data: [
+        row(formula, `0x${'66'.repeat(32)}`, '1000000000000000000'),
+        row(at, `0x${'77'.repeat(32)}`, '2000000000000000000'),
+      ],
+    })
+    const csv = await app.inject({
+      method: 'GET',
+      url: '/api/v1/presale/subscribers.csv',
+      headers: auth(token),
+    })
+    expect(csv.statusCode).toBe(200)
+    expect(csv.body).toContain("'=1+1,1,1000000000000000000")
+    expect(csv.body).toContain("'@SUM(A1),2,2000000000000000000")
+    expect(csv.body).not.toMatch(/(^|\n)=1\+1,/)
+    const transfers = await app.inject({
+      method: 'GET',
+      url: '/api/v1/presale/subscriptions.csv',
+      headers: auth(token),
+    })
+    expect(transfers.body).toContain("'=1+1")
+    expect(transfers.body).toContain(',1,1000000000000000000,')
+    expect(transfers.body).not.toContain("'1,1000000000000000000")
   })
 })
 

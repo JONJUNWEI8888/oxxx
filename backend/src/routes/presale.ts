@@ -11,6 +11,7 @@ import type { AppConfig } from '../config'
 import { getPrisma } from '../db'
 import { AppError } from '../errors'
 import { requestIp, requestUserAgent } from '../http'
+import { csvCell } from '../csv'
 import { listSubscribers, PRESALE_EXPORT_LIMIT, presaleSummary } from '../presale/queries'
 
 const pageQuery = {
@@ -231,17 +232,17 @@ async function* subscriberLines(address: string | undefined, includePending: boo
     const batch = await listSubscribers(getPrisma(), { address, includePending, page, pageSize })
     for (const row of batch.items) {
       yield [
-        row.address,
-        String(row.totalUsdt),
-        row.totalRaw,
-        String(row.txCount),
-        row.firstTransferAt ?? '',
-        row.lastTransferAt ?? '',
-        String(row.pendingTxCount),
-        String(row.pendingUsdt),
-        row.pendingRaw,
-        row.pendingOnly ? 'true' : 'false',
-      ].map(csvCell).join(',')
+        csvCell(row.address),
+        csvCell(row.totalUsdt, 'number'),
+        csvCell(row.totalRaw, 'number'),
+        csvCell(String(row.txCount), 'number'),
+        csvCell(row.firstTransferAt ?? ''),
+        csvCell(row.lastTransferAt ?? ''),
+        csvCell(String(row.pendingTxCount), 'number'),
+        csvCell(row.pendingUsdt, 'number'),
+        csvCell(row.pendingRaw, 'number'),
+        csvCell(row.pendingOnly ? 'true' : 'false'),
+      ].join(',')
     }
     if (batch.items.length < pageSize) return
   }
@@ -260,16 +261,16 @@ async function* contributionLines(where: Prisma.PresaleContributionWhereInput) {
     for (const row of rows) {
       const view = present(row)
       yield [
-        view.txHash,
-        String(view.logIndex),
-        view.fromAddress,
-        String(view.amount),
-        view.amountRaw,
-        String(view.blockNumber),
-        view.blockTime,
-        String(view.confirmations),
-        view.pending ? 'true' : 'false',
-      ].map(csvCell).join(',')
+        csvCell(view.txHash),
+        csvCell(String(view.logIndex), 'number'),
+        csvCell(view.fromAddress),
+        csvCell(view.amount, 'number'),
+        csvCell(view.amountRaw, 'number'),
+        csvCell(String(view.blockNumber), 'number'),
+        csvCell(view.blockTime),
+        csvCell(String(view.confirmations), 'number'),
+        csvCell(view.pending ? 'true' : 'false'),
+      ].join(',')
     }
     if (rows.length < pageSize) return
     skip += rows.length
@@ -286,11 +287,6 @@ function sendCsv(reply: FastifyReply, filename: string, header: string, lines: A
 async function* withHeader(header: string, lines: AsyncIterable<string>) {
   yield `\uFEFF${header}\n`
   for await (const line of lines) yield `${line}\n`
-}
-
-function csvCell(value: string): string {
-  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`
-  return value
 }
 
 function audit(request: FastifyRequest, action: string, metadata: Record<string, unknown>) {
