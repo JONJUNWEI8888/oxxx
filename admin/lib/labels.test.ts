@@ -14,4 +14,5 @@ test('pads short fractions to two digits and keeps a leading minus', () => {
   assert.equal(formatUsdt('1000'), '1,000.00 USDT')
   assert.equal(formatUsdt('250.5'), '250.50 USDT')
   assert.equal(formatUsdt('-0.5'), '-0.50 USDT')
+  assert.equal(formatUsdt('007.5'), '7.50 USDT')
 })
