@@ -8,6 +8,7 @@ import { checkPresaleAddress, presaleChain } from '@/lib/presale-address'
 
 type Contribution = {
   txHash: string
+  logIndex: number
   amount: number
   blockTime: string
   confirmations: number
@@ -87,6 +88,7 @@ function MySubscriptionForm() {
         contributions: body.contributions.filter(
           (row): row is Contribution =>
             typeof row?.txHash === 'string' &&
+            typeof row.logIndex === 'number' &&
             typeof row.amount === 'number' &&
             typeof row.blockTime === 'string' &&
             typeof row.confirmations === 'number',
@@ -180,7 +182,7 @@ function Result({ body }: { body: LookupBody }) {
       </div>
       <ul className="flex flex-col gap-3">
         {body.contributions.map((row) => (
-          <li key={`${row.txHash}-${row.blockTime}`} className="rounded-lg border border-white/10 px-4 py-3">
+          <li key={`${row.txHash}:${row.logIndex}`} className="rounded-lg border border-white/10 px-4 py-3">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <span className="text-[16px] text-white">{formatUsdt(row.amount)} USDT</span>
               <time className="text-[13px] text-white/45" dateTime={row.blockTime}>

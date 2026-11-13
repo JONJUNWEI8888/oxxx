@@ -3,8 +3,16 @@
 import { useRef } from 'react'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
+import { presaleSummaryVisible } from '@/lib/presale-summary'
 
-type PresaleData = { raised: number; hardCapUsdt: number; updatedAt: number; subscriberCount: number }
+type PresaleData = {
+  raised: number
+  hardCapUsdt: number
+  updatedAt: number
+  subscriberCount: number
+  /** True once the indexer cursor has passed the configured start block. */
+  ready: boolean
+}
 type Point = { t: number; v: number }
 
 const fetcher = async (url: string): Promise<PresaleData> => {
@@ -19,6 +27,7 @@ const fetcher = async (url: string): Promise<PresaleData> => {
     hardCapUsdt: body.hardCapUsdt,
     updatedAt: body.updatedAt,
     subscriberCount: typeof body.subscriberCount === 'number' ? body.subscriberCount : 0,
+    ready: body.ready === true,
   }
 }
 
@@ -53,7 +62,7 @@ function formatPercent(pct: number) {
 }
 
 function isLive(data: PresaleData | undefined): data is PresaleData {
-  return Boolean(data && Number.isFinite(data.raised) && data.raised > 0 && Number.isFinite(data.hardCapUsdt) && data.hardCapUsdt > 0)
+  return presaleSummaryVisible(data ?? {})
 }
 
 export function PresaleTracker() {
