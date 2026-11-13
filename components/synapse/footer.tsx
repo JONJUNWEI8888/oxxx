@@ -12,9 +12,10 @@ const LINK_GROUPS = [
     id: 'product',
     title: { zh: '产品', en: 'Product' },
     links: [
-      { id: 'markets', label: { zh: '加密行情', en: 'Crypto Markets' }, href: '#markets' },
-      { id: 'tokenized', label: { zh: '美股代币化', en: 'Tokenized US Stocks' }, href: '#platform' },
-      { id: 'presale', label: { zh: 'OX 私募', en: 'OX Private Sale' }, href: '#presale' },
+      { id: 'markets', label: { zh: '加密行情', en: 'Crypto Markets' }, href: '/#markets' },
+      { id: 'tokenized', label: { zh: '美股代币化', en: 'Tokenized US Stocks' }, href: '/#platform' },
+      { id: 'presale', label: { zh: 'OX 私募', en: 'OX Private Sale' }, href: '/#presale' },
+      { id: 'mine', label: { zh: '我的认购', en: 'My subscription' }, href: '/presale' },
     ],
   },
   {
@@ -22,17 +23,17 @@ const LINK_GROUPS = [
     title: { zh: '关于', en: 'About' },
     links: [
       { id: 'about', label: { zh: '关于 oxxx.io', en: 'About oxxx.io' }, href: '/about' },
-      { id: 'token', label: { zh: '代币信息', en: 'Token Info' }, href: '#about' },
-      { id: 'metrics', label: { zh: '交易数据', en: 'Trading Data' }, href: '#metrics' },
+      { id: 'token', label: { zh: '代币信息', en: 'Token Info' }, href: '/#about' },
+      { id: 'metrics', label: { zh: '交易数据', en: 'Trading Data' }, href: '/#metrics' },
     ],
   },
   {
     id: 'support',
     title: { zh: '支持', en: 'Support' },
     links: [
-      { id: 'address', label: { zh: '私募地址', en: 'Presale Address' }, href: '#presale' },
-      { id: 'bsc', label: { zh: 'BSC 网络', en: 'BSC Network' }, href: '#presale' },
-      { id: 'top', label: { zh: '返回顶部', en: 'Back to Top' }, href: '#top' },
+      { id: 'address', label: { zh: '私募地址', en: 'Presale Address' }, href: '/#presale' },
+      { id: 'bsc', label: { zh: 'BSC 网络', en: 'BSC Network' }, href: '/#presale' },
+      { id: 'top', label: { zh: '返回顶部', en: 'Back to Top' }, href: '/#top' },
     ],
   },
 ]
