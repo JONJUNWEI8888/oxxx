@@ -1,6 +1,7 @@
 packages:
   - '.'
   - 'backend'
+  - 'admin'
 
 pmOnFail: ignore
 
